@@ -12,7 +12,7 @@ module.exports = (option, app) => {
         
         const {user_id, major_id} = ctx.request.query
 
-        ctx.auth = {user_id, major_id};
+        ctx.auth = {user_id, major_id, username:'test', avatar:'http://www.baidu.com'};
 
         await next();
     }

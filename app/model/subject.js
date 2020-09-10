@@ -23,6 +23,12 @@ module.exports = app => {
             v.content = JSON.parse(v.content)
         });
         return list
+    };
+
+    Subject.getOne = async function(id) {
+        return await this.findOne({
+            where:{id}
+        });
     }
 
     return Subject;

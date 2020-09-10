@@ -11,6 +11,16 @@ module.exports = app => {
   router.get('/subject', controller.home.subject);
 
   router.post('/in_game', controller.game.inGame)
+  router.get('/out_game', controller.game.outGame)
+  router.post('/game_answer', controller.game.answer)
+  router.post('/game_message', controller.game.message)
+
+  router.get('/group/in_game', controller.group.inGame)
+  router.get('/group/out_game', controller.group.outGame)
+  router.post('/group/invite', controller.group.invite)
+  router.post('/group/invite_do', controller.group.inviteDo)
+  router.post('/group/kick', controller.group.gameKick)
+  router.post('/group/match', controller.group.gameMatch)
 
   app.ws.use(async (ctx, next) => {
     // 获取参数 ws://localhost:7001/ws?token=123456
