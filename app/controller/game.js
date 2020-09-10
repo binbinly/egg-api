@@ -35,7 +35,7 @@ class GameController extends Controller {
             app.queue_game_in.push({ major_id, id }, function (err) {
                 console.log('finished processing foo');
             });
-            return this.success()
+            return this.success([ctx.auth])
         } else {//发送消息给其他人
             const users = await app.redis.smembers('game_major_' + major_id)
             for (const key in users) {

@@ -1,4 +1,8 @@
 module.exports = {
+    logger: {
+        level: 'DEBUG',
+        allowDebugAtProd: true,
+    },
     // 配置数据库
     sequelize: {
         dialect: 'mysql',
