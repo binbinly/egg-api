@@ -23,7 +23,7 @@ class GameController extends Controller {
         //当前专业人数
         let curr_major_count = await app.redis.scard('game_major_' + major_id);
 
-        const ret = await app.redis.sadd('game_major_' + major_id, user_id);
+        const ret = await app.redis.sadd('game_major_' + major_id, JSON.stringify(user));
         if (!ret) {
             return this.error(500, '进入失败')
         }
@@ -36,21 +36,23 @@ class GameController extends Controller {
                 console.log('finished processing foo');
             });
             return this.success()
-        } else if (curr_major_count >= 2) {
-            await service.game.gameStart(major_id, id);
-            //清除队列人物
-            app.queue_game_in.kill()
-            return this.success('', '游戏开始了')
         } else {//发送消息给其他人
-            const user_ids = await app.redis.smembers('game_major_' + major_id)
-            user_ids.forEach(uid => {
-                if (user_id == uid) return
-                let ws = app.ws.user[uid] ? app.ws.user[uid] : null
-                if (ws) {
-                    ws.send(JSON.stringify({ cmd: 'room_in', data: user }))
+            const users = await app.redis.smembers('game_major_' + major_id)
+            for (const key in users) {
+                if (users.hasOwnProperty(key)) {
+                    const u = JSON.parse(users[key]);
+                    users[key] = u
+                    if (user_id == u.user_id) continue
+                    let ws = app.ws.user[u.user_id] ? app.ws.user[u.user_id] : null
+                    if (ws) {
+                        ws.send(JSON.stringify({ cmd: 'room_in', data: user }))
+                    }
                 }
-            });
-            this.success()
+            }
+            if (curr_major_count >= 2) {
+                await service.game.gameStart(major_id, id, 'quick');
+            }
+            return this.success(users)
         }
     }
 
@@ -62,11 +64,12 @@ class GameController extends Controller {
         // 拿到当前用户id
         const user_id = ctx.auth.user_id;
         const major_id = ctx.auth.major_id;
-        const ret = await app.redis.srem('game_major_' + major_id, user_id)
+        const ret = await app.redis.srem('game_major_' + major_id, JSON.stringify(ctx.auth))
         if (ret) {
             const user_ids = await app.redis.smembers('game_major_' + major_id)
-            user_ids.forEach(async uid => {
-                let ws = app.ws.user[uid] ? app.ws.user[uid] : null
+            user_ids.forEach(async u => {
+                const user_info = JSON.parse(u)
+                let ws = app.ws.user[user_info.user_id] ? app.ws.user[user_info.user_id] : null
                 if (ws) {
                     ws.send(JSON.stringify({ cmd: 'room_out', data: { user_id } }))
                 }

@@ -12,6 +12,7 @@ class GameMatch extends Subscription {
     // subscribe 是真正定时任务执行时被运行的函数
     async subscribe() {
         const app = this.ctx.app
+        return
         // const list = await app.redis.hgetall('group_match_list')
         const list = {
             group_room_1: '{"major_id":"1","id":1,"type":1, "count":3}',

@@ -9,8 +9,15 @@ class GameService extends Service {
      * @param {*} major_id 
      * @param {*} id 
      */
-    async gameStart(major_id, id) {
+    async gameStart(major_id, id, speed) {
         const { ctx, app } = this;
+        
+        if (major[major_id] == 'quick') {
+            major[major_id] = 'end'
+            console.log('end')
+            return
+        }
+        app.major[major_id] = speed
         const user_ids = await app.redis.smembers('game_major_' + major_id)
         //题目列表
         const list = await ctx.model.Subject.getAll(id, 5);

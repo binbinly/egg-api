@@ -27,6 +27,7 @@ class AppBootHook {
 
     //初始化在线用户
     app.ws.user = {}
+    app.major = []
 
     const async = require('async');
     this.app.queue_game_in = async.queue(function (obj, callback) {
@@ -36,8 +37,7 @@ class AppBootHook {
         const { major_id, id } = obj;
         const count = await app.redis.scard('game_major_' + major_id);
         if (count >= 3) {//大于等于3可以开始游戏
-          await ctx.service.game.gameStart(major_id, id);
-          await app.redis.del('game_major_' + major_id)
+          await ctx.service.game.gameStart(major_id, id, 'end');
         }
         if (typeof callback === 'function') {
           callback();
