@@ -6,8 +6,8 @@ class HomeController extends Controller {
 
   async index() {
     this.ctx.body = 'hello'
-    
-    let a = {master:{user_id:10}, slave:{user_id:9}}
+
+    let a = { master: { user_id: 10 }, slave: { user_id: 9 } }
     console.log(a)
     console.log(Object.keys(a).length)
     // this.app.queue_test.push({}, function (err) {
@@ -26,6 +26,10 @@ class HomeController extends Controller {
     const ctx = this.ctx;
     const list = await ctx.model.Cat.getAll();
     this.success(list)
+  }
+
+  async login() {
+    this.success({ user_i1: 1, major_id: 1, username: 'test', avatar: '' });
   }
 
   async subject() {

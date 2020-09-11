@@ -30,7 +30,7 @@ class GameController extends Controller {
 
         console.log('count', curr_major_count)
         if (curr_major_count == 0) {
-            await app.redis.expire('game_major_' + major_id, 60)
+            await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
             app.queue_game_in.push({ major_id, id }, function (err) {
                 console.log('finished processing foo');
@@ -126,11 +126,12 @@ class GameController extends Controller {
         const { id, option_id, second } = ctx.request.body;
 
         const room_name = await app.redis.get('user_room_' + user_id)
-        const user_ids_str = await app.redis.get('room_' + room_name)
-        if (user_ids_str) {
-            const { user_ids, subject_ids } = JSON.parse(user_ids_str)
-            if (subject_ids.indexOf(id) <= -1) {
-                return this.error(500, '题目id非法')
+        const room_info = await app.redis.hgetall('room_' + room_name)
+        console.log('room_info', room_info)
+        if (room_info.user_ids) {
+            const user_ids = room_info.user_ids.split('_')
+            if (room_info.curr_subject_id != id) {
+                return this.error(500, '题目非法')
             }
             const subject_info = await ctx.model.Subject.getOne(id);
 
@@ -138,36 +139,47 @@ class GameController extends Controller {
                 return this.error(500, '题目不存在')
             }
 
-            let data = { user_id }
-            if (subject_info.true_option == option_id) {//答题正确
-                data.status = true
-                const subject_key = 'subject_' + id + '_' + room_name
-                let rate = 1;
-                if (await app.redis.exists(subject_key)) {
-                    if (await app.redis.hexists(subject_key, user_id)) {
-                        return this.error(500, '不可重复答题')
-                    }
-                    await app.redis.hset(subject_key, user_id, 1)
-                    const len = await app.redis.hlen(subject_key)
+            let data = { user_id, score: 0, status: false }
 
-                    if (len == 2) {//第二名
-                        rate = 1.3
-                    } else if (len == 3) {//第三名
-                        rate = 1.1
-                    }
-                } else {//第一名
-                    await app.redis.hset(subject_key, user_id, 1)
-                    await app.redis.expire(subject_key, 20)
-                    rate = 1.5
+            const subject_key = 'subject_' + id + '_' + room_name
+            let rate = 1;
+            let quick = false
+            if (await app.redis.exists(subject_key)) {
+                if (await app.redis.hexists(subject_key, user_id)) {
+                    return this.error(500, '不可重复答题')
                 }
+                await app.redis.hset(subject_key, user_id, 1)
+                const len = await app.redis.hlen(subject_key)
 
+                if (len == 2) {//第二名
+                    rate = 1.3
+                } else if (len == 3) {//第三名
+                    rate = 1.1
+                }
+                if (len == user_ids.length) {
+                    quick = true
+                }
+            } else {//第一名
+                await app.redis.hset(subject_key, user_id, 1)
+                await app.redis.expire(subject_key, 25)
+                rate = 1.5
+            }
+
+            if (subject_info.true_option == option_id) {//答题正确
+                if (second <= 1) {
+                    second = 1
+                } else if (second >= 20) {
+                    second = 19
+                }
+                data.status = true
                 //计算分数
                 data.score = parseInt((200 / 20 * (20 - second)) * rate)
-                //记录
-                await app.redis.hset('answer_user_' + user_id, id, data.score)
-            } else {
-                data.status = false
             }
+            //记录
+            await app.redis.hset('answer_user_' + user_id, id, data.score)
+
+            //记录答题信息
+            //await app.redis.hset('answer_history' + user_id, id, JSON.stringify({ option_id, second, status: data.status, score: data.score }))
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
@@ -176,6 +188,9 @@ class GameController extends Controller {
                     ws.send(JSON.stringify({ cmd: 'subject_finish', data }))
                 }
             });
+            if (quick) {
+                await ctx.service.game.nextSubject(room_name, user_ids, 'quick')
+            }
             this.success(data)
         } else {
             this.error(500, '房间信息错误')

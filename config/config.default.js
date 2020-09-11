@@ -23,6 +23,10 @@ module.exports = appInfo => {
     // myAppName: 'egg',
   };
 
+  config.auth = {
+    ignore: ['/login', '/ws']
+  };
+
   config.security = {
     // 关闭 csrf
     csrf: {

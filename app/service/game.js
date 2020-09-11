@@ -1,5 +1,7 @@
 'use strict';
 
+const { jsonp } = require('../../config/plugin');
+
 const Service = require('egg').Service;
 
 class GameService extends Service {
@@ -23,6 +25,7 @@ class GameService extends Service {
             const info = JSON.parse(val)
             return info.user_id
         })
+        console.log('user_ids', user_ids)
         //题目列表
         const list = await ctx.model.Subject.getAll(id, 5);
         const first_subject = list.pop();
@@ -34,17 +37,21 @@ class GameService extends Service {
             await app.redis.lpush('major_subject_' + room_name, JSON.stringify(val));
         });
         //生成房间
-        await app.redis.set('room_' + room_name, JSON.stringify({ user_ids, subject_ids }))
+        await app.redis.hset('room_' + room_name, 'user_ids', room_name)
 
         user_ids.forEach(async uid => {
             let ws = app.ws.user[uid] ? app.ws.user[uid] : null
             await app.redis.set('user_room_' + uid, room_name)
             if (ws) {
-                ws.send(JSON.stringify({ cmd: 'game_start', data: first_subject }))
+                let subject = JSON.parse(JSON.stringify(first_subject))
+                subject['time'] = 23
+                //记录房间当前题
+                await app.redis.hset('room_'+room_name, 'curr_subject_id', subject['id'])
+                ws.send(JSON.stringify({ cmd: 'game_start', data: subject }))
             }
         });
         //游戏开始，开始一题一体推送
-        app.queue_game_run.push({ room_name, user_ids }, function (err) {
+        app.queue_game_run.push({ room_name, user_ids, time:23000 }, function (err) {
             console.log('finished processing foo');
         });
         await app.redis.del('game_major_' + major_id)
@@ -54,18 +61,27 @@ class GameService extends Service {
      * push下一题
      * @param {*} room_name 
      */
-    async nextSubject(room_name, user_ids) {
+    async nextSubject(room_name, user_ids, speed) {
         const { app } = this;
-        const subject = await app.redis.rpop('major_subject_' + room_name)
+        if (app.room[room_name] == 'quick') {
+            app.room[room_name] = 'end'
+            console.log('end')
+            return
+        }
+        app.room[room_name] = speed
+        const subject_str = await app.redis.rpop('major_subject_' + room_name)
+        let subject = JSON.parse(subject_str)
         if (subject) {
             console.log('user_ids', user_ids)
             user_ids.forEach(async user_id => {
                 let ws = app.ws.user[user_id] ? app.ws.user[user_id] : null
                 if (ws) {
+                    subject['time'] = 20
+                    await app.redis.hset('room_'+room_name, 'curr_subject_id', subject['id'])
                     ws.send(JSON.stringify({ cmd: 'game_next', data: subject }))
                 }
             });
-            app.queue_game_run.push({ room_name, user_ids }, function (err) {
+            app.queue_game_run.push({ room_name, user_ids, time:20000 }, function (err) {
                 console.log('finished processing foo');
             });
         } else {//没有题了，游戏结束

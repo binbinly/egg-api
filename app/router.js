@@ -9,6 +9,7 @@ module.exports = app => {
   router.get('/cat', controller.home.cat);
   router.get('/conf', controller.home.conf);
   router.get('/subject', controller.home.subject);
+  router.post('/login', controller.home.login)
 
   router.post('/in_game', controller.game.inGame)
   router.get('/out_game', controller.game.outGame)

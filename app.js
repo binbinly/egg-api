@@ -28,6 +28,7 @@ class AppBootHook {
     //初始化在线用户
     app.ws.user = {}
     app.major = []
+    app.room = []
 
     const async = require('async');
     this.app.queue_game_in = async.queue(function (obj, callback) {
@@ -36,6 +37,7 @@ class AppBootHook {
         console.log('settimeout')
         const { major_id, id } = obj;
         const count = await app.redis.scard('game_major_' + major_id);
+        console.log('count', count)
         if (count >= 3) {//大于等于3可以开始游戏
           await ctx.service.game.gameStart(major_id, id, 'end');
         }
@@ -43,21 +45,19 @@ class AppBootHook {
           callback();
         }
       }, 60000);
-    }, 1);
+    }, 10);
 
     this.app.queue_game_run = async.queue(function (obj, callback) {
       console.log('queue game run', obj)
+      const { room_name, user_ids, time } = obj
       let b = setTimeout(async () => {
         console.log('timeout')
-        const { room_name, user_ids } = obj
-
-        await ctx.service.game.nextSubject(room_name, user_ids)
+        await ctx.service.game.nextSubject(room_name, user_ids, 'end')
         if (typeof callback === 'function') {
           callback();
         }
-      }, 10000);
-
-    }, 1)
+      }, 40000);
+    }, 10)
 
     this.app.queue_test = async.queue(function (obj, callback) {
       console.log('queue test start', new Date().getTime() / 1000)
