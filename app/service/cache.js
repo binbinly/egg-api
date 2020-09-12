@@ -65,6 +65,11 @@ class CacheService extends Service {
         return JSON.parse(result);
     }
 
+    async exist(key){
+        const { redis } = this.app;
+        return await redis.exists(key);
+    }
+
     async incr(key, number = 1) {
         const { redis } = this.app;
         if (number === 1) {

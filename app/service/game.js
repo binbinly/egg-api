@@ -40,14 +40,12 @@ class GameService extends Service {
         await app.redis.hset('room_' + room_name, 'user_ids', room_name)
 
         user_ids.forEach(async uid => {
-            if (app.ws.user[uid]) {
-                await app.redis.set('user_room_' + uid, room_name)
-                let subject = JSON.parse(JSON.stringify(first_subject))
-                subject['time'] = 10
-                //记录房间当前题
-                await app.redis.hset('room_' + room_name, 'curr_subject_id', subject['id'])
-                ctx.send(uid, 'game_start', subject)
-            }
+            await app.redis.set('user_room_' + uid, room_name)
+            let subject = JSON.parse(JSON.stringify(first_subject))
+            subject['time'] = 10
+            //记录房间当前题
+            await app.redis.hset('room_' + room_name, 'curr_subject_id', subject['id'])
+            ctx.send(uid, 'game_start', subject)
         });
         //游戏开始，开始一题一体推送
         app.queue_game_run.push({ room_name, user_ids, time: 13000 }, function (err) {

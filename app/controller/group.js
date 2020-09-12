@@ -171,7 +171,7 @@ class GroupController extends Controller {
             return this.error(500, '游戏进行中哦')
         }
         await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
-        if (app.ws.user[id]) {
+        if (ctx.exist(id)) {
             ctx.send(id, 'invite_user', { user_id })
             return this.success()
         }

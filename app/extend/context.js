@@ -34,5 +34,14 @@ module.exports = {
             app.messenger.sendTo(opid, "offline", user_id);
         }
         service.cache.set("online_" + user_id, pid);
+    },
+
+    /**
+     * 是否在线
+     * @param {*} user_id 
+     */
+    async isOnline(user_id) {
+        const {service, app} = this;
+        return await service.cache.exist('online_' +user_id)
     }
 };

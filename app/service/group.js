@@ -102,7 +102,7 @@ class GroupService extends Service {
 
     async gameEnd(room_name, r, b) {
         const { app } = this
-        const data = {'defeat':'r', 'win':'b'}
+        const data = { 'defeat': 'r', 'win': 'b' }
         this.send(r, room_name, 'group_endt', data)
         this.send(b, room_name, 'group_end', data)
     }
@@ -115,10 +115,8 @@ class GroupService extends Service {
     async send(list, room_name, cmd, data) {
         const { app, ctx } = this
         list.forEach(async v => {
-            if (app.ws.user[v.user_id]) {
-                await app.redis.set('user_room_' + v.user_id, room_name)
-                ctx.send(v.user_id, cmd, data)
-            }
+            await app.redis.set('user_room_' + v.user_id, room_name)
+            ctx.send(v.user_id, cmd, data)
         })
     }
 }
