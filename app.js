@@ -29,11 +29,13 @@ class AppBootHook {
     app.ws.user = {}
     app.major = []
     app.room = []
+    app.group_room = []
 
     const async = require('async');
+    //个人赛进入房间
     this.app.queue_game_in = async.queue(function (obj, callback) {
       console.log('queue game in', obj)
-      let a = setTimeout(async () => {
+      setTimeout(async () => {
         console.log('settimeout')
         const { major_id, id } = obj;
         const count = await app.redis.scard('game_major_' + major_id);
@@ -45,19 +47,59 @@ class AppBootHook {
           callback();
         }
       }, 60000);
-    }, 10);
+    }, 5);
 
+    //个人赛推送题目
     this.app.queue_game_run = async.queue(function (obj, callback) {
       console.log('queue game run', obj)
       const { room_name, user_ids, time } = obj
-      let b = setTimeout(async () => {
+      setTimeout(async () => {
         console.log('timeout')
         await ctx.service.game.nextSubject(room_name, user_ids, 'end')
         if (typeof callback === 'function') {
           callback();
         }
-      }, 40000);
-    }, 10)
+      }, 8000);
+    }, 5)
+
+    //团队赛，准备队列
+    this.app.queue_group_ready = async.queue(function (obj, callback) {
+      console.log('group ready', obj)
+      const { room_name, r, b, time } = obj
+      setTimeout(async () => {
+        console.log('timeout ready')
+        await ctx.service.group.rushAnswer(room_name, r, b)
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, time);
+    }, 5)
+
+    //团队赛 枪替队列
+    this.app.queue_group_rush = async.queue(function (obj, callback) {
+      console.log('group rush', obj)
+      const { room_name, r, b, time } = obj
+      setTimeout(async () => {
+        console.log('timeout rush')
+        await ctx.service.group.nextSubject(room_name, r, b, 'end')
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, time);
+    }, 5)
+
+    //团队赛 推送题目
+    this.app.queue_group_run = async.queue(function (obj, callback) {
+      console.log('group run', obj)
+      const { room_name, r, b, time } = obj
+      setTimeout(async () => {
+        console.log('timeout run')
+        await ctx.service.group.ready(room_name, r, b, 'end')
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, time);
+    }, 5)
 
     this.app.queue_test = async.queue(function (obj, callback) {
       console.log('queue test start', new Date().getTime() / 1000)
