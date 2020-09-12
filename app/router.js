@@ -23,6 +23,9 @@ module.exports = app => {
   router.post('/group/kick', controller.group.gameKick)
   router.post('/group/match', controller.group.gameMatch)
 
+  router.get('/group/rush', controller.group.rush)  //抢题
+  router.post('/group/answer', controller.group.answer) 
+
   app.ws.use(async (ctx, next) => {
     // 获取参数 ws://localhost:7001/ws?token=123456
     // ctx.query.token
@@ -37,6 +40,7 @@ module.exports = app => {
       ctx.websocket.user_id = user.id;
       app.ws.user[user.id] = ctx.websocket;
 
+      ctx.online(user.id);
       await next();
     } catch (err) {
       console.log(err);

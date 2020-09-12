@@ -92,15 +92,12 @@ class GroupController extends Controller {
      * @param {*} to 
      */
     async sendRoomMsg(list, to, cmd, data) {
-        const { app } = this
+        const { ctx } = this
         //发送消息
         to.forEach(key => {
             const room_user = list[key] ? JSON.parse(list[key]) : null
             if (room_user) {
-                const m_ws = app.ws.user[room_user.user_id] ? app.ws.user[room_user.user_id] : null
-                if (m_ws) {
-                    m_ws.send(JSON.stringify({ cmd, data }))
-                }
+                ctx.send(room_user.user_id, cmd, data)
             }
         });
     }
@@ -174,9 +171,8 @@ class GroupController extends Controller {
             return this.error(500, '游戏进行中哦')
         }
         await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
-        const ws = app.ws.user[id] ? app.ws.user[id] : null
-        if (ws) {
-            ws.send(JSON.stringify({ cmd: 'invite_user', data: { user_id } }))
+        if (app.ws.user[id]) {
+            ctx.send(id, 'invite_user', { user_id })
             return this.success()
         }
         this.error(500, '用户不在线哦')
@@ -237,18 +233,12 @@ class GroupController extends Controller {
                 if (list.hasOwnProperty(key)) {
                     const element = JSON.parse(list[key]);
                     list[key] = element
-                    const ws = app.ws.user[element.user_id] ? app.ws.user[element.user_id] : null
-                    if (ws) {
-                        ws.send(JSON.stringify({ cmd: 'invite_accept', data }))
-                    }
+                    ctx.send(element.user_id, 'invite_accept', data)
                 }
             }
             return this.success(list)
         } else {//拒绝
-            const ws = app.ws.user[id] ? app.ws.user[id] : null
-            if (ws) {
-                ws.send(JSON.stringify({ cmd: 'invite_refuse', data: { user_id } }))
-            }
+            ctx.send(id, 'invite_refuse', { user_id })
         }
         return this.success()
     }
@@ -283,6 +273,7 @@ class GroupController extends Controller {
             const { id, type, act } = ctx.request.body;
             if (act == 1) {//开始匹配
                 await app.redis.hset('group_match_list', room_name, JSON.stringify({ major_id, id, type }))
+                app.test = 1
                 await app.runSchedule('game_match');
             } else {//取消匹配
                 await app.redis.hdel('group_match_list', room_name)
@@ -290,6 +281,14 @@ class GroupController extends Controller {
             return this.success()
         }
         this.error(500, '不是房主哦')
+    }
+
+    async rush(){
+
+    }
+
+    async answer(){
+
     }
 }
 

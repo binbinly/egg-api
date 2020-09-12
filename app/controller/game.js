@@ -30,6 +30,7 @@ class GameController extends Controller {
 
         console.log('count', curr_major_count)
         if (curr_major_count == 0) {
+            app.major[major_id] = 'end'
             await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
             app.queue_game_in.push({ major_id, id }, function (err) {
@@ -43,10 +44,7 @@ class GameController extends Controller {
                     const u = JSON.parse(users[key]);
                     users[key] = u
                     if (user_id == u.user_id) continue
-                    let ws = app.ws.user[u.user_id] ? app.ws.user[u.user_id] : null
-                    if (ws) {
-                        ws.send(JSON.stringify({ cmd: 'room_in', data: user }))
-                    }
+                    ctx.send(u.user_id, 'room_in', user)
                 }
             }
             if (curr_major_count >= 2) {
@@ -69,10 +67,7 @@ class GameController extends Controller {
             const user_ids = await app.redis.smembers('game_major_' + major_id)
             user_ids.forEach(async u => {
                 const user_info = JSON.parse(u)
-                let ws = app.ws.user[user_info.user_id] ? app.ws.user[user_info.user_id] : null
-                if (ws) {
-                    ws.send(JSON.stringify({ cmd: 'room_out', data: { user_id } }))
-                }
+                ctx.send(user_info.user_id, 'room_out', { user_id })
             });
             return this.success()
         }
@@ -99,10 +94,7 @@ class GameController extends Controller {
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
-                let ws = app.ws.user[uid] ? app.ws.user[uid] : null
-                if (ws) {
-                    ws.send(JSON.stringify({ cmd: 'game_message', data: { user_id, message } }))
-                }
+                ctx.send(uid, 'game_message', { user_id, message })
             });
             return this.success()
         }
@@ -183,10 +175,7 @@ class GameController extends Controller {
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
-                let ws = app.ws.user[uid] ? app.ws.user[uid] : null
-                if (ws) {
-                    ws.send(JSON.stringify({ cmd: 'subject_finish', data }))
-                }
+                ctx.send(uid, 'subject_finish', data)
             });
             if (quick) {
                 await ctx.service.game.nextSubject(room_name, user_ids, 'quick')

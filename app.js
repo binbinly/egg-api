@@ -31,6 +31,20 @@ class AppBootHook {
     app.room = []
     app.group_room = []
 
+    app.messenger.on("offline", (user_id) => {
+      if (app.ws.user[user_id]) {
+        app.ws.user[user_id].send(JSON.stringify({ cmd: "offline", data: "你的账号在其他设备登录" }));
+        app.ws.user[user_id].close();
+      }
+    });
+
+    app.messenger.on("send", (e) => {
+      let { to_id, cmd, data } = e;
+      if (app.ws.user[to_id]) {
+        app.ws.user[to_id].send(JSON.stringify({ cmd, data }));
+      }
+    });
+
     const async = require('async');
     //个人赛进入房间
     this.app.queue_game_in = async.queue(function (obj, callback) {
@@ -59,7 +73,7 @@ class AppBootHook {
         if (typeof callback === 'function') {
           callback();
         }
-      }, 8000);
+      }, time);
     }, 5)
 
     //团队赛，准备队列

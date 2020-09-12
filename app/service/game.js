@@ -13,7 +13,7 @@ class GameService extends Service {
      */
     async gameStart(major_id, id, speed) {
         const { ctx, app } = this;
-        
+
         if (app.major[major_id] == 'quick') {
             app.major[major_id] = 'end'
             console.log('end')
@@ -30,28 +30,27 @@ class GameService extends Service {
         const list = await ctx.model.Subject.getAll(id, 5);
         const first_subject = list.pop();
         const room_name = user_ids.join('_');
-        let subject_ids = [first_subject.id]
+        //初始化
+        app.room[room_name] = 'end'
         //题放入队列
         list.forEach(async val => {
-            subject_ids.push(val.id)
             await app.redis.lpush('major_subject_' + room_name, JSON.stringify(val));
         });
         //生成房间
         await app.redis.hset('room_' + room_name, 'user_ids', room_name)
 
         user_ids.forEach(async uid => {
-            let ws = app.ws.user[uid] ? app.ws.user[uid] : null
-            await app.redis.set('user_room_' + uid, room_name)
-            if (ws) {
+            if (app.ws.user[uid]) {
+                await app.redis.set('user_room_' + uid, room_name)
                 let subject = JSON.parse(JSON.stringify(first_subject))
-                subject['time'] = 23
+                subject['time'] = 10
                 //记录房间当前题
-                await app.redis.hset('room_'+room_name, 'curr_subject_id', subject['id'])
-                ws.send(JSON.stringify({ cmd: 'game_start', data: subject }))
+                await app.redis.hset('room_' + room_name, 'curr_subject_id', subject['id'])
+                ctx.send(uid, 'game_start', subject)
             }
         });
         //游戏开始，开始一题一体推送
-        app.queue_game_run.push({ room_name, user_ids, time:23000 }, function (err) {
+        app.queue_game_run.push({ room_name, user_ids, time: 13000 }, function (err) {
             console.log('finished processing foo');
         });
         await app.redis.del('game_major_' + major_id)
@@ -62,7 +61,7 @@ class GameService extends Service {
      * @param {*} room_name 
      */
     async nextSubject(room_name, user_ids, speed) {
-        const { app } = this;
+        const { app, ctx } = this;
         if (app.room[room_name] == 'quick') {
             app.room[room_name] = 'end'
             console.log('end')
@@ -70,18 +69,15 @@ class GameService extends Service {
         }
         app.room[room_name] = speed
         const subject_str = await app.redis.rpop('major_subject_' + room_name)
-        let subject = JSON.parse(subject_str)
-        if (subject) {
+        if (subject_str) {
+            let subject = JSON.parse(subject_str)
             console.log('user_ids', user_ids)
             user_ids.forEach(async user_id => {
-                let ws = app.ws.user[user_id] ? app.ws.user[user_id] : null
-                if (ws) {
-                    subject['time'] = 20
-                    await app.redis.hset('room_'+room_name, 'curr_subject_id', subject['id'])
-                    ws.send(JSON.stringify({ cmd: 'game_next', data: subject }))
-                }
+                subject['time'] = 10
+                await app.redis.hset('room_' + room_name, 'curr_subject_id', subject['id'])
+                ctx.send(user_id, 'game_next', subject)
             });
-            app.queue_game_run.push({ room_name, user_ids, time:20000 }, function (err) {
+            app.queue_game_run.push({ room_name, user_ids, time: 10000 }, function (err) {
                 console.log('finished processing foo');
             });
         } else {//没有题了，游戏结束
@@ -94,7 +90,7 @@ class GameService extends Service {
      * @param {*} room_name 
      */
     async gameEnd(room_name, user_ids) {
-        const { app } = this;
+        const { app, ctx } = this;
         console.log('game end')
 
         await app.redis.del('major_subject_' + room_name)
@@ -119,10 +115,7 @@ class GameService extends Service {
         //发送消息
         user_ids.forEach(async uid => {
             await app.redis.del('user_room_' + uid)
-            let ws = app.ws.user[uid] ? app.ws.user[uid] : null
-            if (ws) {
-                ws.send(JSON.stringify({ cmd: 'game_end', data }))
-            }
+            ctx.send(uid, 'game_end', data)
         });
     }
 }
