@@ -131,7 +131,7 @@ class GameController extends Controller {
                 return this.error(500, '题目不存在')
             }
 
-            let data = { user_id, score: 0, status: false }
+            let data = { user_id, option_id, score: 0, status: false }
 
             const subject_key = 'subject_' + id + '_' + room_name
             let rate = 1;

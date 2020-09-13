@@ -257,17 +257,17 @@ class GroupController extends Controller {
             id: { type: 'int', required: true },
             type: { type: 'int', required: true },
             act: { type: 'int', required: false, default: 1 } // 1=开始匹配 0=取消匹配
-        });
-        //所在房间
-        const room_name = await app.redis.hget('user_group_room', user_id)
-        if (!room_name) {
-            return this.error(500, '不在房间内')
-        }
-        const list = await app.redis.hgetall(room_name)
-        if (!list || !list['master']) {
-            return this.error(500, '信息错误')
-        }
-        const master = JSON.parse(list['master'])
+        })
+         //所在房间
+         const room_name = await app.redis.hget('user_group_room', user_id)
+         if (!room_name) {
+             return this.error(500, '不在房间内')
+         }
+         const list = await app.redis.hgetall(room_name)
+         if (!list || !list['master']) {
+             return this.error(500, '信息错误')
+         }
+         const master = JSON.parse(list['master'])
         if (master.user_id == user_id) {
             //专业id
             const { id, type, act } = ctx.request.body;
@@ -283,10 +283,61 @@ class GroupController extends Controller {
         this.error(500, '不是房主哦')
     }
 
+    /**
+     * 抢题
+     */
     async rush(){
-
+        const { ctx, app, service } = this;
+        // 拿到当前用户id
+        const user_id = ctx.auth.user_id
+        ctx.validate({
+            second: { type: 'int', required: true }
+        })
+        const {second} = ctx.request.body;
+        //所在房间
+        const room_name = await app.redis.get('user_room_'+user_id)
+        if (!room_name) {
+            return this.error(500, '不在房间内')
+        }
+        const list = await app.redis.hgetall('group_room_' + room_name)
+        console.log(list)
+        if (!list) {
+            return this.error(500, '信息错误')
+        }
+        if (list.status != 2) {
+            return this.error(500, '抢题已过时间哦')
+        }
+        if (list.user_id) {
+            return this.error(500, '已被抢哦')
+        }
+        const red = JSON.parse(list.red)
+        let write = '';
+        red.forEach(v => {
+            if (v.user_id == user_id) {
+                write = 'red'
+            }
+        })
+        const blue = JSON.parse(list.blue)
+        blue.forEach(v => {
+            if (v.user_id == user_id) {
+                write = 'blue'
+            }
+        })
+        if (write == '') {
+            return this.error(500, '不在房间内哦')
+        }
+        const score = 50
+        //记录抢题
+        await app.redis.hmset('group_room_' + room_name, {user_id, write})
+        await app.redis.hincrby('group_room_' + room_name, write + '_score', score)
+        await service.group.send(red, room_name, 'group_rush', {user_id, write})
+        await service.group.send(blue, room_name, 'group_rush', {user_id, write})
+        return this.success()
     }
 
+    /**
+     * 答题
+     */
     async answer(){
 
     }

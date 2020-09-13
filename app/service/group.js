@@ -38,6 +38,13 @@ class GroupService extends Service {
         }
         this.send(r, room_name, 'group_start', { r, b, time: 5 })
         this.send(b, room_name, 'group_start', { r, b, time: 5 })
+        //记录所在房间
+        r.forEach(async v => {
+            await app.redis.set('user_room_' + v.user_id, room_name)
+        });
+        b.forEach(async v => {
+            await app.redis.set('user_room_' + v.user_id, room_name)
+        });
         //游戏开始，进入准备阶段
         app.queue_group_ready.push({ room_name, r, b, time: 5000 }, function (err) {
             console.log('finished processing foo');
