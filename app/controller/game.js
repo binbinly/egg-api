@@ -88,9 +88,9 @@ class GameController extends Controller {
         //专业id
         const { message } = ctx.request.body;
         const room_name = await app.redis.get('user_room_' + user_id)
-        const user_ids_str = await app.redis.get('room_' + room_name)
-        if (user_ids_str) {
-            const { user_ids } = JSON.parse(user_ids_str)
+        const room_info = await app.redis.hgetall('room_' + room_name)
+        if (room_info.user_ids) {
+            const user_ids = room_info.user_ids.split('_')
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
