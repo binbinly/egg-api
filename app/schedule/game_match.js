@@ -4,7 +4,7 @@ class GameMatch extends Subscription {
     // 通过 schedule 属性来设置定时任务的执行间隔等配置
     static get schedule() {
         return {
-            interval: '600m', // 1 分钟间隔
+            interval: '5s', // 1 分钟间隔
             type: 'all', // 指定所有的 worker 都需要执行
         };
     }
@@ -25,17 +25,18 @@ class GameMatch extends Subscription {
                 }
             }
         }
-        console.log('data', data)
         for (const key in data) {
             if (data.hasOwnProperty(key)) {
                 const rooms = data[key];
                 if (rooms.length < 2) continue
-                const {status, red, blue} = await this.match(rooms)
+                const {status, red, blue, rs} = await this.match(rooms)
                 if (status == true) {
-                    console.log('success')
+                    console.log('match success')
+                    //删除匹配队列中的
+                    rs.forEach(element => {
+                        app.redis.hdel('group_match_list', element)
+                    });
                     await this.ctx.service.group.gameStart(key, red, blue)
-                } else {
-                    console.log('error')
                 }
             }
         }
@@ -49,6 +50,7 @@ class GameMatch extends Subscription {
         const app = this.ctx.app
         let red = []
         let blue = []
+        let rs = []
         for (const key in room_names) {
             if (room_names.hasOwnProperty(key)) {
                 const room_name = room_names[key]
@@ -58,12 +60,14 @@ class GameMatch extends Subscription {
                     continue
                 }
                 if (red.length + cur_users.length <= 3) {
+                    rs.push(room_name)
                     red = red.concat(cur_users)
                 } else if (blue.length + cur_users.length <= 3) {
+                    rs.push(room_name)
                     blue = blue.concat(cur_users)
                 }
                 if (red.length == 3 && blue.length == 3) {//匹配成功
-                    return {status: true, red, blue}
+                    return {status: true, red, blue, rs}
                 }
             }
         }

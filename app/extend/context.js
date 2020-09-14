@@ -30,7 +30,6 @@ module.exports = {
         const { app } = this;
         let pid = process.pid;
         let opid = await app.redis.get("online_" + user_id);
-        console.log('pid', user_id, opid)
         if (opid) {
             app.messenger.sendTo(opid, "offline", user_id);
             setTimeout(async () => {
