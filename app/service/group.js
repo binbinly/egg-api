@@ -22,8 +22,19 @@ class GroupService extends Service {
         const b = blue.map(v => {
             return JSON.parse(v)
         })
+        let user_ids_r = r.map(v => {
+            return v.user_id
+        })
+        let user_ids_b = b.map(v => {
+            return v.user_id
+        })
+        const user_ids = user_ids_r.concat(user_ids_b)
         //生成房间 status 1=准备  2=抢 3=开始答题
-        await app.redis.hmset('group_room_' + room_name, { status: 1, red: JSON.stringify(r), blue: JSON.stringify(b) })
+        await app.redis.hmset('group_room_' + room_name, {
+            status: 1, red: JSON.stringify(r),
+            blue: JSON.stringify(b), user_ids: user_ids.join('_'),
+            user_ids_r: user_ids_r.join('_'), user_ids_b: user_ids_b.join('_')
+        })
         if (type == 1) {//抢题模式
             //题目列表
             const list = await ctx.model.Subject.getAll(id, 5);
@@ -39,11 +50,8 @@ class GroupService extends Service {
         this.send(r, room_name, 'group_start', { r, b, time: 5 })
         this.send(b, room_name, 'group_start', { r, b, time: 5 })
         //记录所在房间
-        r.forEach(async v => {
-            await app.redis.set('user_room_' + v.user_id, room_name)
-        });
-        b.forEach(async v => {
-            await app.redis.set('user_room_' + v.user_id, room_name)
+        user_ids.forEach(async uid => {
+            await app.redis.set('user_room_' + uid, room_name)
         });
         //游戏开始，进入准备阶段
         app.queue_group_ready.push({ room_name, r, b, time: 5000 }, function (err) {
@@ -108,10 +116,42 @@ class GroupService extends Service {
     }
 
     async gameEnd(room_name, r, b) {
-        const { app } = this
-        const data = { 'defeat': 'r', 'win': 'b' }
-        this.send(r, room_name, 'group_endt', data)
-        this.send(b, room_name, 'group_end', data)
+        const { app, ctx } = this;
+        console.log('game end')
+
+        await app.redis.del('group_major_subject_' + room_name)
+        await app.redis.del('group_room_' + room_name)
+        let data_r = []
+        let data_b = []
+        //结算
+        const score_list = await app.redis.hgetall('group_answer_user')
+        await app.redis.del('group_answer_user')
+        //计算分数
+        for (const i in r) {
+            let score = 0
+            score += parseInt(score_list[r[i].user_id]);
+            data_r.push({ user_id: r[i].user_id, score })
+        }
+        data_r.sort((a, b) => {
+            return b.score - a.score
+        })
+        for (const i in b) {
+            let score = 0
+            score += parseInt(score_list[b[i].user_id]);
+            data.push({ user_id: b[i].user_id, score })
+        }
+        data_b.sort((a, b) => {
+            return b.score - a.score
+        })
+        //发送消息
+        r.forEach(async v => {
+            await app.redis.del('user_room_' + v.user_id)
+            ctx.send(v.user_id, 'group_end', data)
+        });
+        b.forEach(async v => {
+            await app.redis.del('user_room_' + v.user_id)
+            ctx.send(v.user_id, 'group_end', data)
+        });
     }
 
     /**

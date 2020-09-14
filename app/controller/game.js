@@ -30,7 +30,7 @@ class GameController extends Controller {
 
         console.log('count', curr_major_count)
         if (curr_major_count == 0) {
-            app.major[major_id] = 'end'
+            app.major[major_id] = 0
             await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
             app.queue_game_in.push({ major_id, id }, function (err) {
@@ -48,7 +48,12 @@ class GameController extends Controller {
                 }
             }
             if (curr_major_count >= 2) {
-                await service.game.gameStart(major_id, id, 'quick');
+                if (app.major[major_id]) {
+                    app.major[major_id]++
+                } else {
+                    app.major[major_id] = 1
+                }
+                await service.game.gameStart(major_id, id);
             }
             return this.success(users)
         }
@@ -178,7 +183,12 @@ class GameController extends Controller {
                 ctx.send(uid, 'subject_finish', data)
             });
             if (quick) {
-                await ctx.service.game.nextSubject(room_name, user_ids, 'quick')
+                if (app.room[room_name]) {
+                    app.room[room_name]++
+                } else {
+                    app.room[room_name] = 1
+                }
+                await ctx.service.game.nextSubject(room_name, user_ids)
             }
             this.success(data)
         } else {

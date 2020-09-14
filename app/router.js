@@ -38,9 +38,8 @@ module.exports = app => {
       app.ws.user = app.ws.user ? app.ws.user : {};
       // 记录当前用户id
       ctx.websocket.user_id = user.id;
-      app.ws.user[user.id] = ctx.websocket;
 
-      ctx.online(user.id);
+      await ctx.online(user.id);
       await next();
     } catch (err) {
       console.log(err);

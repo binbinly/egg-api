@@ -27,13 +27,20 @@ module.exports = {
      * @param {*} user_id 
      */
     async online(user_id) {
-        const { service, app } = this;
+        const { app } = this;
         let pid = process.pid;
-        let opid = await service.cache.get("online_" + user_id);
+        let opid = await app.redis.get("online_" + user_id);
+        console.log('pid', user_id, opid)
         if (opid) {
             app.messenger.sendTo(opid, "offline", user_id);
+            setTimeout(async () => {
+                app.ws.user[user_id] = this.websocket;
+                await app.redis.set("online_" + user_id, pid);
+            }, 1000);
+        } else {
+            app.ws.user[user_id] = this.websocket;
+            await app.redis.set("online_" + user_id, pid);
         }
-        service.cache.set("online_" + user_id, pid);
     },
 
     /**
@@ -41,7 +48,7 @@ module.exports = {
      * @param {*} user_id 
      */
     async isOnline(user_id) {
-        const {service, app} = this;
-        return await service.cache.exist('online_' +user_id)
+        const { service, app } = this;
+        return await service.cache.exist('online_' + user_id)
     }
 };

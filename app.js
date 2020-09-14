@@ -30,6 +30,7 @@ class AppBootHook {
     app.major = []
     app.room = []
     app.group_room = []
+    app.group_major = []
 
     app.messenger.on("offline", (user_id) => {
       if (app.ws.user[user_id]) {
@@ -52,10 +53,16 @@ class AppBootHook {
       setTimeout(async () => {
         console.log('settimeout')
         const { major_id, id } = obj;
+        if (app.major[major_id] && app.major[major_id] > 0) {
+          app.major[major_id]--
+          console.log('end')
+          return
+        }
+
         const count = await app.redis.scard('game_major_' + major_id);
         console.log('count', count)
         if (count >= 3) {//大于等于3可以开始游戏
-          await ctx.service.game.gameStart(major_id, id, 'end');
+          await ctx.service.game.gameStart(major_id, id);
         }
         if (typeof callback === 'function') {
           callback();
@@ -69,7 +76,12 @@ class AppBootHook {
       const { room_name, user_ids, time } = obj
       setTimeout(async () => {
         console.log('timeout')
-        await ctx.service.game.nextSubject(room_name, user_ids, 'end')
+        if (app.room[room_name] && app.room[room_name] > 0) {
+          app.room[room_name]--
+          console.log('run end')
+          return
+        }
+        await ctx.service.game.nextSubject(room_name, user_ids)
         if (typeof callback === 'function') {
           callback();
         }

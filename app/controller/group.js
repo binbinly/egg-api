@@ -166,12 +166,14 @@ class GroupController extends Controller {
         //专业id
         const { id } = ctx.request.body;
         const ret = await app.redis.get('user_room_' + id)
-
         if (ret) {
             return this.error(500, '游戏进行中哦')
         }
+        if (!await app.redis.exists('group_room_' + user_id)) {
+            return this.error(500, '请先进入房间')
+        }
         await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
-        if (ctx.exist(id)) {
+        if (ctx.isOnline(id)) {
             ctx.send(id, 'invite_user', { user_id })
             return this.success()
         }
@@ -328,7 +330,7 @@ class GroupController extends Controller {
         }
         const score = 50
         //记录抢题
-        await app.redis.hmset('group_room_' + room_name, {user_id, write})
+        await app.redis.hmset('group_room_' + room_name, {user_id, write, cur_write:write})
         await app.redis.hincrby('group_room_' + room_name, write + '_score', score)
         await service.group.send(red, room_name, 'group_rush', {user_id, write})
         await service.group.send(blue, room_name, 'group_rush', {user_id, write})
@@ -339,7 +341,79 @@ class GroupController extends Controller {
      * 答题
      */
     async answer(){
+        const { ctx, app } = this;
+        // 拿到当前用户id
+        const user_id = ctx.auth.user_id;
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true },    //题目id
+            option_id: { type: 'int', required: true }, //选择选项
+            second: { type: 'int', required: true } //答题用时
+        });
+        //专业id
+        const { id, option_id, second } = ctx.request.body;
 
+        const room_name = await app.redis.get('user_room_' + user_id)
+        const room_info = await app.redis.hgetall('group_room_' + room_name)
+        console.log('room_info', room_info)
+        if (room_info.user_ids) {
+            const user_ids = room_info.user_ids.split('_')
+            if (room_info.curr_subject_id != id) {
+                return this.error(500, '题目非法')
+            }
+            const subject_info = await ctx.model.Subject.getOne(id);
+            if (!subject_info) {
+                return this.error(500, '题目不存在')
+            }
+            const cur_user_ids = room_info.cur_write == 'red' ? room_info.user_ids_r.split('_') : room_info.user_ids_b.split('_')
+            if (!cur_user_ids.includes(user_id)) {
+                return this.error(500, '不可以答题')
+            }
+            let data = { user_id, option_id, id, score: 0, status: false }
+
+            if (subject_info.true_option == option_id) {//答题正确
+                if (second <= 1) {
+                    second = 1
+                } else if (second >= 20) {
+                    second = 19
+                }
+                data.status = true
+                //计算分数
+                data.score = parseInt(200 / 20 * (20 - second))
+            }
+
+            const subject_key = 'group_subject_' + id + '_' + room_info.cur_write + '_' + room_name
+            let quick = false
+            if (await app.redis.exists(subject_key)) {
+                if (await app.redis.hexists(subject_key, user_id)) {
+                    return this.error(500, '不可重复答题')
+                }
+                await app.redis.hset(subject_key, user_id, data.status)
+                const len = await app.redis.hlen(subject_key)
+
+                if (len == cur_user_ids.length) {
+                    quick = true
+                }
+            } else {
+                await app.redis.hset(subject_key, user_id, 1)
+                await app.redis.expire(subject_key, 25)
+            }
+
+            //记录
+            await app.redis.hset('group_answer_user', user_id, data.score)
+
+            //发送消息
+            user_ids.forEach(async uid => {
+                if (user_id == uid) return
+                ctx.send(uid, 'group_subject_finish', data)
+            });
+            if (quick) {
+                await ctx.service.game.nextSubject(room_name, user_ids, 'quick')
+            }
+            this.success(data)
+        } else {
+            this.error(500, '房间信息错误')
+        }
     }
 }
 

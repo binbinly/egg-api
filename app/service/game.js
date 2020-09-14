@@ -11,15 +11,9 @@ class GameService extends Service {
      * @param {*} major_id 
      * @param {*} id 
      */
-    async gameStart(major_id, id, speed) {
+    async gameStart(major_id, id) {
         const { ctx, app } = this;
 
-        if (app.major[major_id] == 'quick') {
-            app.major[major_id] = 'end'
-            console.log('end')
-            return
-        }
-        app.major[major_id] = speed
         const users = await app.redis.smembers('game_major_' + major_id)
         const user_ids = users.map(val => {
             const info = JSON.parse(val)
@@ -31,7 +25,7 @@ class GameService extends Service {
         const first_subject = list.pop();
         const room_name = user_ids.join('_');
         //初始化
-        app.room[room_name] = 'end'
+        app.room[room_name] = 0
         //题放入队列
         list.forEach(async val => {
             await app.redis.lpush('major_subject_' + room_name, JSON.stringify(val));
@@ -58,14 +52,8 @@ class GameService extends Service {
      * push下一题
      * @param {*} room_name 
      */
-    async nextSubject(room_name, user_ids, speed) {
+    async nextSubject(room_name, user_ids) {
         const { app, ctx } = this;
-        if (app.room[room_name] == 'quick') {
-            app.room[room_name] = 'end'
-            console.log('end')
-            return
-        }
-        app.room[room_name] = speed
         const subject_str = await app.redis.rpop('major_subject_' + room_name)
         if (subject_str) {
             let subject = JSON.parse(subject_str)
