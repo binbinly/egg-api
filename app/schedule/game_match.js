@@ -29,13 +29,9 @@ class GameMatch extends Subscription {
             if (data.hasOwnProperty(key)) {
                 const rooms = data[key];
                 if (rooms.length < 2) continue
-                const {status, red, blue, rs} = await this.match(rooms)
+                const {status, red, blue} = await this.match(rooms)
                 if (status == true) {
                     console.log('match success')
-                    //删除匹配队列中的
-                    rs.forEach(element => {
-                        app.redis.hdel('group_match_list', element)
-                    });
                     await this.ctx.service.group.gameStart(key, red, blue)
                 }
             }
@@ -50,7 +46,6 @@ class GameMatch extends Subscription {
         const app = this.ctx.app
         let red = []
         let blue = []
-        let rs = []
         for (const key in room_names) {
             if (room_names.hasOwnProperty(key)) {
                 const room_name = room_names[key]
@@ -60,14 +55,12 @@ class GameMatch extends Subscription {
                     continue
                 }
                 if (red.length + cur_users.length <= 3) {
-                    rs.push(room_name)
                     red = red.concat(cur_users)
                 } else if (blue.length + cur_users.length <= 3) {
-                    rs.push(room_name)
                     blue = blue.concat(cur_users)
                 }
                 if (red.length == 3 && blue.length == 3) {//匹配成功
-                    return {status: true, red, blue, rs}
+                    return {status: true, red, blue}
                 }
             }
         }

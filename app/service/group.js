@@ -6,7 +6,7 @@ class GroupService extends Service {
 
     ready_time = 5  //准备时间
     rush_time = 5   //抢题时间
-    answer_time = 30    //答题时间
+    answer_time = 20    //答题时间
 
     /**
      * 游戏开始
@@ -58,6 +58,8 @@ class GroupService extends Service {
         //记录所在房间
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
+            await app.redis.del('group_room_' + uid)
+            await app.redis.hdel('user_group_room', uid)
         });
         //游戏开始，进入准备阶段
         app.queue_group_ready.push({ subject, room_name, r, b, time: this.ready_time }, function (err) {
@@ -161,6 +163,7 @@ class GroupService extends Service {
             let score = 0
             score += parseInt(score_list[r[i].user_id]);
             data_r.push({ user_id: r[i].user_id, score })
+            await app.redis.del('user_room_' + r[i].user_id)
         }
         data_r.sort((a, b) => {
             return b.score - a.score
@@ -169,6 +172,7 @@ class GroupService extends Service {
             let score = 0
             score += parseInt(score_list[b[i].user_id]);
             data_b.push({ user_id: b[i].user_id, score })
+            await app.redis.del('user_room_' + b[i].user_id)
         }
         data_b.sort((a, b) => {
             return b.score - a.score
