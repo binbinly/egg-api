@@ -23,7 +23,7 @@ module.exports = app => {
   router.post('/group/kick', controller.group.gameKick)
   router.post('/group/match', controller.group.gameMatch)
 
-  router.get('/group/rush', controller.group.rush)  //抢题
+  router.post('/group/rush', controller.group.rush)  //抢题
   router.post('/group/answer', controller.group.answer) 
 
   app.ws.use(async (ctx, next) => {

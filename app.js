@@ -27,10 +27,6 @@ class AppBootHook {
 
     //初始化在线用户
     app.ws.user = {}
-    app.major = []
-    app.room = []
-    app.group_room = []
-    app.group_major = []
 
     app.messenger.on("offline", (user_id) => {
       if (app.ws.user[user_id]) {
@@ -48,21 +44,22 @@ class AppBootHook {
 
     const async = require('async');
     //个人赛进入房间
-    this.app.queue_game_in = async.queue(function (obj, callback) {
+    app.queue_game_in = async.queue(function (obj, callback) {
       console.log('queue game in', obj)
+      const start_time = new Date().getTime()
       setTimeout(async () => {
         console.log('settimeout')
         const { major_id, id } = obj;
-        if (app.major[major_id] && app.major[major_id] > 0) {
-          app.major[major_id]--
-          console.log('end')
-          return
-        }
-
-        const count = await app.redis.scard('game_major_' + major_id);
-        console.log('count', count)
-        if (count >= 3) {//大于等于3可以开始游戏
-          await ctx.service.game.gameStart(major_id, id);
+        const end_time = new Date().getTime()
+        const run_time = app.redis.get('start_major_' + major_id + '_' + id)
+        if (run_time > start_time && run_time < end_time) {
+          console.log('skip')
+        } else {
+          const count = await app.redis.scard('game_major_' + major_id);
+          console.log('count', count)
+          if (count >= 3) {//大于等于3可以开始游戏
+            await ctx.service.game.gameStart(major_id, id);
+          }
         }
         if (typeof callback === 'function') {
           callback();
@@ -71,63 +68,78 @@ class AppBootHook {
     }, 5);
 
     //个人赛推送题目
-    this.app.queue_game_run = async.queue(function (obj, callback) {
+    app.queue_game_run = async.queue(function (obj, callback) {
       console.log('queue game run', obj)
-      const { room_name, user_ids, time } = obj
+      const { subject, room_name, user_ids, time } = obj
       setTimeout(async () => {
         console.log('timeout')
-        if (app.room[room_name] && app.room[room_name] > 0) {
-          app.room[room_name]--
-          console.log('run end')
-          return
+        const is = await app.redis.hexists('room_' + room_name, subject['id'])
+        if (!is) {
+          await ctx.service.game.nextSubject(room_name, user_ids)
+        } else {
+          console.log('skip')
         }
-        await ctx.service.game.nextSubject(room_name, user_ids)
         if (typeof callback === 'function') {
           callback();
         }
-      }, time);
+      }, time * 1000);
     }, 5)
 
     //团队赛，准备队列
-    this.app.queue_group_ready = async.queue(function (obj, callback) {
+    app.queue_group_ready = async.queue(function (obj, callback) {
       console.log('group ready', obj)
-      const { room_name, r, b, time } = obj
+      const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout ready')
-        await ctx.service.group.rushAnswer(room_name, r, b)
+        await ctx.service.group.rushAnswer(subject, room_name, r, b)
         if (typeof callback === 'function') {
           callback();
         }
-      }, time);
+      }, time * 1000);
     }, 5)
 
     //团队赛 枪替队列
-    this.app.queue_group_rush = async.queue(function (obj, callback) {
+    app.queue_group_rush = async.queue(function (obj, callback) {
       console.log('group rush', obj)
-      const { room_name, r, b, time } = obj
+      const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout rush')
-        await ctx.service.group.nextSubject(room_name, r, b, 'end')
+        await ctx.service.group.pushSubject(subject, room_name, r, b)
         if (typeof callback === 'function') {
           callback();
         }
-      }, time);
+      }, time * 1000);
     }, 5)
 
     //团队赛 推送题目
-    this.app.queue_group_run = async.queue(function (obj, callback) {
+    app.queue_group_run = async.queue(function (obj, callback) {
       console.log('group run', obj)
-      const { room_name, r, b, time } = obj
+      const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout run')
-        await ctx.service.group.ready(room_name, r, b, 'end')
+        const is = await app.redis.hexists('group_room_' + room_name, subject['id'])
+        if (!is) {
+          await ctx.service.group.ready(room_name, r, b)
+        } else {
+          console.log('skip')
+        }
         if (typeof callback === 'function') {
           callback();
         }
-      }, time);
+      }, time * 1000);
+      //是否切换答题方
+      setTimeout(async () => {
+        console.log('timeout switch')
+        const is = await app.redis.hexists('group_room_' + room_name, subject['id'])
+        if (!is) {
+          await ctx.service.group.switchGroup(subject, room_name, r, b)
+        } else {
+          console.log('skip')
+        }
+      }, time * 1000 / 2);
     }, 5)
 
-    this.app.queue_test = async.queue(function (obj, callback) {
+    app.queue_test = async.queue(function (obj, callback) {
       console.log('queue test start', new Date().getTime() / 1000)
       app.queue_key = setTimeout(() => {
         console.log('time', new Date().getTime() / 1000)

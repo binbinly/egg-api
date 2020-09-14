@@ -275,7 +275,6 @@ class GroupController extends Controller {
             const { id, type, act } = ctx.request.body;
             if (act == 1) {//开始匹配
                 await app.redis.hset('group_match_list', room_name, JSON.stringify({ major_id, id, type }))
-                app.test = 1
                 await app.runSchedule('game_match');
             } else {//取消匹配
                 await app.redis.hdel('group_match_list', room_name)
@@ -332,8 +331,8 @@ class GroupController extends Controller {
         //记录抢题
         await app.redis.hmset('group_room_' + room_name, {user_id, write, cur_write:write})
         await app.redis.hincrby('group_room_' + room_name, write + '_score', score)
-        await service.group.send(red, room_name, 'group_rush', {user_id, write})
-        await service.group.send(blue, room_name, 'group_rush', {user_id, write})
+        await service.group.send(red, 'group_rush', {user_id, write})
+        await service.group.send(blue, 'group_rush', {user_id, write})
         return this.success()
     }
 
@@ -366,7 +365,7 @@ class GroupController extends Controller {
                 return this.error(500, '题目不存在')
             }
             const cur_user_ids = room_info.cur_write == 'red' ? room_info.user_ids_r.split('_') : room_info.user_ids_b.split('_')
-            if (!cur_user_ids.includes(user_id)) {
+            if (!cur_user_ids.includes(user_id+'')) {
                 return this.error(500, '不可以答题')
             }
             let data = { user_id, option_id, id, score: 0, status: false }
@@ -380,10 +379,12 @@ class GroupController extends Controller {
                 data.status = true
                 //计算分数
                 data.score = parseInt(200 / 20 * (20 - second))
+                //记录题目回答正确id
+                await app.redis.setex('group_answer_subject_' + id, 60, user_id)
             }
 
             const subject_key = 'group_subject_' + id + '_' + room_info.cur_write + '_' + room_name
-            let quick = false
+            let quick = 0
             if (await app.redis.exists(subject_key)) {
                 if (await app.redis.hexists(subject_key, user_id)) {
                     return this.error(500, '不可重复答题')
@@ -392,7 +393,12 @@ class GroupController extends Controller {
                 const len = await app.redis.hlen(subject_key)
 
                 if (len == cur_user_ids.length) {
-                    quick = true
+                    if (await app.redis.exists('group_answer_subject_' + id)) {//有人回答正确
+                        //直接进入下一题
+                        quick = 2
+                    } else {//切换答题方
+                        quick = 1
+                    }
                 }
             } else {
                 await app.redis.hset(subject_key, user_id, 1)
@@ -400,15 +406,19 @@ class GroupController extends Controller {
             }
 
             //记录
-            await app.redis.hset('group_answer_user', user_id, data.score)
+            await app.redis.hincrby('group_answer_user_' + room_name, user_id, data.score)
 
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
                 ctx.send(uid, 'group_subject_finish', data)
             });
-            if (quick) {
-                await ctx.service.game.nextSubject(room_name, user_ids, 'quick')
+            if (quick == 2) {
+                await app.redis.hset('group_room_' + room_name, id, 2)
+                await ctx.service.group.ready(room_name, r, b)
+            } else if (quick == 1) {
+                await app.redis.hset('group_room_' + room_name, id, 1)
+                await ctx.service.group.switchGroup(id, room_name, r, b)
             }
             this.success(data)
         } else {

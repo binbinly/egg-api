@@ -5,8 +5,8 @@ module.exports = (option, app) => {
 
             if (ctx.status === 404 && !ctx.body) {
                 ctx.body = {
-                    msg: 'fail',
-                    data: '404错误'
+                    code:404,
+                    msg: '路由不存在'
                 }
             }
         } catch (err) {
@@ -17,6 +17,7 @@ module.exports = (option, app) => {
             if (status === 422) {
                 console.log(err)
                 ctx.body = {
+                    code:400,
                     msg: err.errors[0].message ? err.errors[0].message : err.message
                 };
             } else {
@@ -24,9 +25,8 @@ module.exports = (option, app) => {
                 app.emit('error', err, ctx);
 
                 ctx.body = {
-                    code: status,
-                    msg: 'fail',
-                    data: error
+                    code: 501,
+                    msg: error
                 };
             }
             ctx.status = 200;

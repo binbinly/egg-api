@@ -30,7 +30,6 @@ class GameController extends Controller {
 
         console.log('count', curr_major_count)
         if (curr_major_count == 0) {
-            app.major[major_id] = 0
             await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
             app.queue_game_in.push({ major_id, id }, function (err) {
@@ -48,11 +47,7 @@ class GameController extends Controller {
                 }
             }
             if (curr_major_count >= 2) {
-                if (app.major[major_id]) {
-                    app.major[major_id]++
-                } else {
-                    app.major[major_id] = 1
-                }
+                await app.redis.setex('start_major_' + major_id + '_' + id, 70, new Date().getTime())
                 await service.game.gameStart(major_id, id);
             }
             return this.success(users)
@@ -130,8 +125,11 @@ class GameController extends Controller {
             if (room_info.curr_subject_id != id) {
                 return this.error(500, '题目非法')
             }
+            console.log(user_ids)
+            if (!user_ids.includes(user_id + '')) {
+                return this.error(500, '不可以答题')
+            }
             const subject_info = await ctx.model.Subject.getOne(id);
-
             if (!subject_info) {
                 return this.error(500, '题目不存在')
             }
@@ -173,8 +171,9 @@ class GameController extends Controller {
                 data.score = parseInt((200 / 20 * (20 - second)) * rate)
             }
             //记录
-            await app.redis.hset('answer_user_' + user_id, id, data.score)
-
+            if (data.score > 0) {
+                await app.redis.hincrby('answer_user_' + room_name, user_id, data.score)
+            }
             //记录答题信息
             //await app.redis.hset('answer_history' + user_id, id, JSON.stringify({ option_id, second, status: data.status, score: data.score }))
             //发送消息
@@ -183,11 +182,8 @@ class GameController extends Controller {
                 ctx.send(uid, 'subject_finish', data)
             });
             if (quick) {
-                if (app.room[room_name]) {
-                    app.room[room_name]++
-                } else {
-                    app.room[room_name] = 1
-                }
+                //记录当前题已完成
+                await app.redis.hset('room_' + room_name, id, 1)
                 await ctx.service.game.nextSubject(room_name, user_ids)
             }
             this.success(data)

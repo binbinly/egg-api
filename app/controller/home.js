@@ -7,9 +7,10 @@ class HomeController extends Controller {
   async index() {
     this.ctx.body = 'hello'
 
-    let a = { master: { user_id: 10 }, slave: { user_id: 9 } }
-    console.log(a)
-    console.log(Object.keys(a).length)
+    var arr = ["太阳光大", "成功是优点的发挥", "不要小看自己", "口说好话", "手心向下是助人"];
+    this.ctx.body = arr[Math.floor((Math.random() * arr.length))]
+    console.log(new Date().getTime())
+    this.app.redis.setex('a', 70, new Date().getTime())
     // this.app.queue_test.push({}, function (err) {
     //   console.log(err)
     //   console.log('finished processing foo');
