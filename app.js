@@ -43,6 +43,8 @@ class AppBootHook {
     });
 
     const async = require('async');
+    const concurrent = 4 //并发
+
     //个人赛进入房间
     app.queue_game_in = async.queue(function (obj, callback) {
       console.log('queue game in', obj)
@@ -65,7 +67,7 @@ class AppBootHook {
           callback();
         }
       }, 60000);
-    }, 5);
+    }, concurrent);
 
     //个人赛推送题目
     app.queue_game_run = async.queue(function (obj, callback) {
@@ -83,7 +85,7 @@ class AppBootHook {
           callback();
         }
       }, time * 1000);
-    }, 5)
+    }, concurrent)
 
     //团队赛，准备队列
     app.queue_group_ready = async.queue(function (obj, callback) {
@@ -96,9 +98,9 @@ class AppBootHook {
           callback();
         }
       }, time * 1000);
-    }, 5)
+    }, concurrent)
 
-    //团队赛 枪替队列
+    //团队赛 枪题队列
     app.queue_group_rush = async.queue(function (obj, callback) {
       console.log('group rush', obj)
       const { subject, room_name, r, b, time } = obj
@@ -109,7 +111,7 @@ class AppBootHook {
           callback();
         }
       }, time * 1000);
-    }, 5)
+    }, concurrent)
 
     //团队赛 推送题目
     app.queue_group_run = async.queue(function (obj, callback) {
@@ -137,7 +139,31 @@ class AppBootHook {
           console.log('skip')
         }
       }, time * 1000 / 2);
-    }, 5)
+    }, concurrent)
+
+    //团队赛 出题模式 - 选题
+    app.queue_group_set_choice = async.queue(function (obj, callback) {
+      console.log('group choice', obj)
+      const { subject, room_name, r, b, time } = obj
+      setTimeout(async () => {
+        //await ctx.service.group.pushSubject(subject, room_name, r, b)
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, time * 1000);
+    }, concurrent)
+
+    //团队赛 出题模式 - 答题
+    app.queue_group_set_answer = async.queue(function (obj, callback) {
+      console.log('group answer', obj)
+      const { subject, room_name, r, b, time } = obj
+      setTimeout(async () => {
+        //await ctx.service.group.pushSubject(subject, room_name, r, b)
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, time * 1000);
+    }, concurrent)
 
     app.queue_test = async.queue(function (obj, callback) {
       console.log('queue test start', new Date().getTime() / 1000)

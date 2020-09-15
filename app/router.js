@@ -5,6 +5,10 @@
  */
 module.exports = app => {
   const { router, controller } = app;
+
+  router.get('/t', controller.test.rush)
+  router.get('/err', controller.test.err)
+
   router.get('/', controller.home.index);
   router.get('/cat', controller.home.cat);
   router.get('/conf', controller.home.conf);
@@ -23,8 +27,10 @@ module.exports = app => {
   router.post('/group/kick', controller.group.gameKick)
   router.post('/group/match', controller.group.gameMatch)
 
-  router.post('/group/rush', controller.group.rush)  //抢题
-  router.post('/group/answer', controller.group.answer) 
+  router.post('/group/rush', controller.rush.rush)  //抢题
+  router.post('/group/answer', controller.rush.answer) 
+  router.post('/group/set_choice', controller.question.choice)
+  router.post('/group/set_answer', controller.question.answer)
 
   app.ws.use(async (ctx, next) => {
     // 获取参数 ws://localhost:7001/ws?token=123456

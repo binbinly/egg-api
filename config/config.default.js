@@ -24,7 +24,7 @@ module.exports = appInfo => {
   };
 
   config.auth = {
-    ignore: ['/login', '/ws']
+    ignore: ['/login', '/ws', '/test']
   };
 
   config.security = {

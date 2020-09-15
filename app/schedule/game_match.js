@@ -29,10 +29,21 @@ class GameMatch extends Subscription {
             if (data.hasOwnProperty(key)) {
                 const rooms = data[key];
                 if (rooms.length < 2) continue
-                const {status, red, blue} = await this.match(rooms)
+                const { status, red, blue } = await this.match(rooms)
                 if (status == true) {
                     console.log('match success')
-                    await this.ctx.service.group.gameStart(key, red, blue)
+                    const arr = key.split('_')
+                    const type = arr[1]
+                    const id = arr[2]
+                    //生成房间
+                    const new_room = key + '_' + (new Date().getTime())
+                    if (type == 1) {//抢题模式
+                        await this.ctx.service.group.gameStart(id, new_room, red, blue)
+                    } else if (type == 2) {
+                        await this.ctx.service.question.gameStart(id, new_room, red, blue)
+                    } else {
+                        console.log('type error', type)
+                    }
                 }
             }
         }
@@ -60,11 +71,11 @@ class GameMatch extends Subscription {
                     blue = blue.concat(cur_users)
                 }
                 if (red.length == 3 && blue.length == 3) {//匹配成功
-                    return {status: true, red, blue}
+                    return { status: true, red, blue }
                 }
             }
         }
-        return {status:false, red, blue}
+        return { status: false, red, blue }
     }
 }
 
