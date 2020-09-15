@@ -99,7 +99,7 @@ class GroupService extends Service {
         const { app } = this;
         let write = await app.redis.hget('group_room_' + room_name, 'cur_write')
         if (!write) {
-            write = this.random(room_name)
+            write = await this.random(room_name)
         }
         this.send(r, 'group_next', { subject, time: this.answer_time, write })
         this.send(b, 'group_next', { subject, time: this.answer_time, write })

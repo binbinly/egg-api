@@ -7,13 +7,13 @@ class TestController extends Controller {
     async err(){
         console.log(a)
     }
-    
+
     async rush() {
         this.ctx.body = 'hello'
         const {env} = this.ctx.request.query
         let host = 'http://127.0.0.1:7001/'
         if (env == 'online') {
-            host = 'http://api.lifetrifles.com'
+            host = 'http://api.lifetrifles.com/'
         }
 
         //进入房间

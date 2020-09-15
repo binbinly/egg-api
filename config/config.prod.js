@@ -1,7 +1,16 @@
 module.exports = {
     logger: {
-        level: 'DEBUG',
-        allowDebugAtProd: true,
+        outputJSON: true,
+        consoleLevel: 'NONE',
+        logrotator: {
+            filesRotateBySize: [
+                path.join(appInfo.root, 'logs', appInfo.name, 'egg-web.log'),
+                path.join(appInfo.root, 'logs', appInfo.name, 'app-web.log'),
+                path.join(appInfo.root, 'logs', appInfo.name, 'common-error.log'),
+                path.join(appInfo.root, 'logs', appInfo.name, 'egg-agent.log'),
+            ],
+            maxFileSize: 2 * 1024 * 1024 * 1024,
+        },
     },
     // 配置数据库
     sequelize: {

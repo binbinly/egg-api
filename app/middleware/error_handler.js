@@ -5,7 +5,7 @@ module.exports = (option, app) => {
 
             if (ctx.status === 404 && !ctx.body) {
                 ctx.body = {
-                    code:404,
+                    code: 404,
                     msg: '路由不存在'
                 }
             }
@@ -17,7 +17,7 @@ module.exports = (option, app) => {
             if (status === 422) {
                 console.log(err)
                 ctx.body = {
-                    code:400,
+                    code: 400,
                     msg: err.errors[0].message ? err.errors[0].message : err.message
                 };
             } else {

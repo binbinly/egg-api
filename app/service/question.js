@@ -23,7 +23,7 @@ class QuestionService extends Service {
         const { r, b } = await this.roomInit(red, blue, room_name)
         const list = await ctx.model.Subject.getAll(id, 4);
         //随机答题方
-        const write = this.random(room_name)
+        const write = await this.random(room_name)
 
         this.send(r, 'group_set_start', { list, r, b, write, time: this.set_time })
         this.send(b, 'group_set_start', { list, r, b, write, time: this.set_time })
