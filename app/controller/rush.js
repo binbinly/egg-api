@@ -50,10 +50,10 @@ class RushController extends Controller {
         if (write == '') {
             return this.error(500, '不在房间内哦')
         }
-        const score = 50
+        const score = 50 / 10 * second
         //记录抢题
         await app.redis.hmset('group_room_' + room_name, { user_id, write, rush: write })
-        await app.redis.hincrby('group_room_' + room_name, write + '_score', score)
+        await app.redis.hincrby('group_answer_user_' + room_name, write, score)
         await service.group.send(red, 'group_rush_finish', { user_id, write })
         await service.group.send(blue, 'group_rush_finish', { user_id, write })
         return this.success()
@@ -134,6 +134,8 @@ class RushController extends Controller {
                 if (user_id == uid) return
                 ctx.send(uid, 'group_subject_finish', data)
             });
+            const r = JSON.parse(room_info.red)
+            const b = JSON.parse(room_info.blue)
             if (quick == 2) {
                 await app.redis.hset('group_room_' + room_name, id, 2)
                 await ctx.service.group.ready(room_name, r, b)

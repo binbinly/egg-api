@@ -30,10 +30,10 @@ class GroupService extends Service {
         });
         this.send(r, 'group_start', { r, b, time: this.ready_time })
         this.send(b, 'group_start', { r, b, time: this.ready_time })
-        
+
         //游戏开始，进入准备阶段， 动画时间 3s
         app.queue_group_ready.push({ subject, room_name, r, b, time: this.ready_time + 3 }, function (err) {
-            console.log('finished processing foo');
+            err && console.log(err)
         });
     }
 
@@ -51,7 +51,7 @@ class GroupService extends Service {
             this.send(b, 'group_ready', { time: this.ready_time })
             //游戏开始，进入准备阶段
             app.queue_group_ready.push({ subject, room_name, r, b, time: this.ready_time + 3 }, function (err) {
-                console.log(err);
+                err && console.log(err)
             });
         } else {
             this.end(room_name, r, b)
@@ -68,7 +68,7 @@ class GroupService extends Service {
         this.send(b, 'group_rush', { time: this.rush_time })
         //游戏开始，进入准备阶段
         app.queue_group_rush.push({ subject, room_name, r, b, time: this.rush_time }, function (err) {
-            console.log(err);
+            err && console.log(err)
         });
         //抢题中
         await app.redis.hset('group_room_' + room_name, 'status', 2)
@@ -92,7 +92,7 @@ class GroupService extends Service {
         //当前题
         await app.redis.hmset('group_room_' + room_name, { status: 3, curr_subject_id: subject['id'] })
         app.queue_group_run.push({ subject, room_name, r, b, time: this.answer_time * 2 }, function (err) {
-            console.log(err);
+            err && console.log(err)
         });
     }
 
@@ -129,7 +129,7 @@ class GroupService extends Service {
 
         await app.redis.del('group_major_subject_' + room_name)
         await app.redis.del('group_room_' + room_name)
-        
+
         const data = await this.roomEnd(room_name, r, b)
         //发送消息
         this.send(r, 'group_end', data)

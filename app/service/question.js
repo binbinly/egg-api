@@ -7,8 +7,8 @@ const Service = require('./base');
  */
 class QuestionService extends Service {
 
-    set_time = 20 //出题时间
-    answer_time = 20 //答题时间
+    set_time = 10 //出题时间
+    answer_time = 10 //答题时间
     round_count = 4 //轮次
 
     /**
@@ -40,7 +40,7 @@ class QuestionService extends Service {
 
         //游戏开始，进入准备阶段
         app.queue_group_set_choice.push({ list, room_name, r, b, time: this.set_time + 3 }, function (err) {
-            console.log('finished processing foo');
+            err && console.log(err)
         });
     }
 
@@ -59,28 +59,29 @@ class QuestionService extends Service {
             return v.id
         })
         const write = room_info.write == 'red' ? 'blue' : 'red'
+        const round = parseInt(room_info.round) + 1
         await app.redis.hmset('group_room_' + room_name, {
-            round: parseInt(room_info.round) + 1,
+            round,
             write,
             ids: ids.join('_'),
-            status:1
+            status: 1
         })
-        if (room_info.choice){
+        if (room_info.choice) {
             await app.redis.hdel('group_room_' + room_name, 'choice', 'choice_id')
         }
-        this.send(r, 'group_set_choice', { list, r, b, write, time: this.set_time })
-        this.send(b, 'group_set_choice', { list, r, b, write, time: this.set_time })
+        this.send(r, 'group_set_choice', { list, write, time: this.set_time })
+        this.send(b, 'group_set_choice', { list, write, time: this.set_time })
 
         //游戏开始，进入准备阶段
-        app.queue_group_set_choice.push({ list, room_name, r, b, time: this.set_time }, function (err) {
-            console.log('finished processing foo');
+        app.queue_group_set_choice.push({ room_name, r, b, time: this.set_time }, function (err) {
+            err && console.log(err)
         });
     }
 
     /**
      * 推送答题题目
      */
-    async push(list, room_name, r, b) {
+    async push(room_name, r, b) {
         const { app } = this;
         let room_info = await app.redis.hgetall('group_room_' + room_name)
         let choice_id = room_info.choice_id
@@ -92,14 +93,15 @@ class QuestionService extends Service {
                 choice_id = ids[Math.floor(Math.random() * ids.length)]
             }
         }
+        choice_id = parseInt(choice_id)
         await app.redis.hmset('group_room_' + room_name, { status: 2, curr_subject_id: choice_id })
         //出题方，答题方相反
         const write = room_info.write == 'red' ? 'blue' : 'red'
         this.send(r, 'group_set_next', { choice_id, time: this.answer_time, write })
         this.send(b, 'group_set_next', { choice_id, time: this.answer_time, write })
 
-        app.queue_group_set_answer.push({ list, room_name, r, b, time: this.answer_time }, function (err) {
-            console.log(err);
+        app.queue_group_set_answer.push({ round: room_info.round, room_name, r, b, time: this.answer_time }, function (err) {
+            err && console.log(err)
         });
     }
 

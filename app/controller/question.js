@@ -106,7 +106,7 @@ class QuestionController extends Controller {
                 }
                 await app.redis.hset(subject_key, user_id, 1)
                 const len = await app.redis.hlen(subject_key)
-                if (len == user_ids.length) {
+                if (len == cur_user_ids.length) {
                     quick = true
                 }
             } else {
@@ -135,8 +135,11 @@ class QuestionController extends Controller {
             });
             if (quick) {
                 //记录当前题已完成
-                await app.redis.hset('group_room_' + room_name, id, 1)
-                await ctx.service.question.next(room_name, user_ids)
+                const r = JSON.parse(room_info.red)
+                const b = JSON.parse(room_info.blue)
+                await app.redis.hset('group_room_' + room_name, 'round_' + room_info.round, 1)
+                console.log('set round', room_info.round)
+                await ctx.service.question.choice(room_name, r, b)
             }
             this.success(data)
         } else {

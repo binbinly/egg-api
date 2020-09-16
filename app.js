@@ -144,9 +144,9 @@ class AppBootHook {
     //团队赛 出题模式 - 选题
     app.queue_group_set_choice = async.queue(function (obj, callback) {
       console.log('group choice')
-      const { list, room_name, r, b, time } = obj
+      const { room_name, r, b, time } = obj
       setTimeout(async () => {
-        await ctx.service.question.push(list, room_name, r, b)
+        await ctx.service.question.push(room_name, r, b)
         if (typeof callback === 'function') {
           callback();
         }
@@ -156,24 +156,21 @@ class AppBootHook {
     //团队赛 出题模式 - 答题
     app.queue_group_set_answer = async.queue(function (obj, callback) {
       console.log('group answer')
-      const { room_name, r, b, time } = obj
+      const { round, room_name, r, b, time } = obj
       setTimeout(async () => {
-        await ctx.service.question.choice(room_name, r, b)
+        const is = await app.redis.hexists('group_room_' + room_name, 'round_' + round)
+        console.log('round', round)
+        if (!is){
+          await ctx.service.question.choice(room_name, r, b)
+        } else {
+          console.log('skip')
+        }
+        
         if (typeof callback === 'function') {
           callback();
         }
       }, time * 1000);
     }, concurrent)
-
-    app.queue_test = async.queue(function (obj, callback) {
-      console.log('queue test start', new Date().getTime() / 1000)
-      app.queue_key = setTimeout(() => {
-        console.log('time', new Date().getTime() / 1000)
-      }, 5000);
-      if (typeof callback === 'function') {
-        callback();
-      }
-    }, 1)
   }
 
   async serverDidReady() {

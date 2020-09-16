@@ -38,7 +38,7 @@ class GameService extends Service {
         });
         //游戏开始，开始一题一体推送
         app.queue_game_run.push({ subject, room_name, user_ids, time: this.answer_time + 3 }, function (err) {
-            console.log('finished processing foo');
+            err && console.log(err)
         });
         await app.redis.del('game_major_' + major_id)
     }
@@ -61,7 +61,7 @@ class GameService extends Service {
             });
             //定时器
             app.queue_game_run.push({ subject, room_name, user_ids, time: this.answer_time }, function (err) {
-                console.log('finished processing foo');
+                err && console.log(err)
             });
         } else {
             this.gameEnd(room_name, user_ids)

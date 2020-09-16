@@ -68,8 +68,8 @@ class BaseService extends Service {
         //结算
         const score_list = await app.redis.hgetall('group_answer_user_' + room_name)
         await app.redis.del('group_answer_user_' + room_name)
-        let score_red = 0
-        let score_blue = 0
+        let score_red = score_list['red'] ? parseInt(score_list['red']) : 0
+        let score_blue = score_list['blue'] ? parseInt(score_list['blue']) : 0
         //计算分数
         for (const i in r) {
             let user_id = r[i].user_id
