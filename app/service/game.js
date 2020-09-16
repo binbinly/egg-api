@@ -25,12 +25,8 @@ class GameService extends Service {
         const list = await ctx.model.Subject.getAll(id, this.subject_count);
         const subject = list.pop();
         const room_name = user_ids.join('_');
-        //题放入队列
-        list.forEach(async val => {
-            await app.redis.lpush('major_subject_' + room_name, JSON.stringify(val));
-        });
         //生成房间
-        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id })
+        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list:JSON.stringify(list) })
         await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
@@ -50,13 +46,14 @@ class GameService extends Service {
      */
     async nextSubject(room_name, user_ids) {
         const { app, ctx } = this;
+        const room_info = await app.redis.hgetall('room_' + room_name)
+        const list = JSON.parse(room_info.list)
         //检测是否还有下一题
-        const subject_str = await app.redis.rpop('major_subject_' + room_name)
-        if (subject_str) {
-            const subject = JSON.parse(subject_str)
+        const subject = list.pop()
+        if (subject) {
             //推题目消息
             user_ids.forEach(async user_id => {
-                await app.redis.hset('room_' + room_name, 'curr_subject_id', subject['id'])
+                await app.redis.hmset('room_' + room_name, {curr_subject_id: subject['id'], list:JSON.stringify(list)})
                 ctx.send(user_id, 'game_next', { subject, time: this.answer_time })
             });
             //定时器
@@ -64,7 +61,7 @@ class GameService extends Service {
                 err && console.log(err)
             });
         } else {
-            this.gameEnd(room_name, user_ids)
+            this.end(room_name, user_ids)
         }
     }
 
@@ -72,11 +69,10 @@ class GameService extends Service {
      * 游戏结束
      * @param {*} room_name 
      */
-    async gameEnd(room_name, user_ids) {
+    async end(room_name, user_ids) {
         const { app, ctx } = this;
         console.log('game end')
 
-        await app.redis.del('major_subject_' + room_name)
         await app.redis.del('room_' + room_name)
 
         const score_list = await app.redis.hgetall('answer_user_' + room_name)

@@ -85,7 +85,7 @@ class QuestionController extends Controller {
         if (room_info.user_ids) {
             const user_ids = room_info.user_ids.split('_')
             if (room_info.curr_subject_id != id) {
-                return this.error(500, '题目非法')
+                return this.error(500, '答题超时')
             }
             //出题方 答题方相反
             const cur_user_ids = room_info.write == 'red' ? room_info.user_ids_b.split('_') : room_info.user_ids_r.split('_')

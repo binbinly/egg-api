@@ -24,7 +24,6 @@ class RushController extends Controller {
             return this.error(500, '不在房间内')
         }
         const list = await app.redis.hgetall('group_room_' + room_name)
-        console.log(list)
         if (!list) {
             return this.error(500, '信息错误')
         }

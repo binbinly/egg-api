@@ -22,14 +22,12 @@ class GroupService extends Service {
         const { r, b } = await this.roomInit(red, blue, room_name)
 
         //题目列表
-        const list = await ctx.model.Subject.getAll(id, 3);
+        const list = await ctx.model.Subject.getAll(id, 5);
         const subject = list.pop()
-        //题放入队列
-        list.forEach(async val => {
-            await app.redis.lpush('group_major_subject_' + room_name, JSON.stringify(val));
-        });
         this.send(r, 'group_start', { r, b, time: this.ready_time })
         this.send(b, 'group_start', { r, b, time: this.ready_time })
+
+        await app.redis.hset('group_room_' + room_name, 'list', JSON.stringify(list))
 
         //游戏开始，进入准备阶段， 动画时间 3s
         app.queue_group_ready.push({ subject, room_name, r, b, time: this.ready_time + 3 }, function (err) {
@@ -42,11 +40,13 @@ class GroupService extends Service {
      */
     async ready(room_name, r, b) {
         const { app } = this
-        const subject_str = await app.redis.rpop('group_major_subject_' + room_name)
-        if (subject_str) {
-            let subject = JSON.parse(subject_str)
+        const room_info = await app.redis.hgetall('group_room_' + room_name)
+        const list = JSON.parse(room_info.list)
+        //检测是否还有下一题
+        const subject = list.pop()
+        if (subject) {
             await app.redis.hdel('group_room_' + room_name, 'user_id', 'rush', 'write')
-            await app.redis.hset('group_room_' + room_name, 'status', 1)
+            await app.redis.hmset('group_room_' + room_name, { status: 1, list: JSON.stringify(list) })
             this.send(r, 'group_ready', { time: this.ready_time })
             this.send(b, 'group_ready', { time: this.ready_time })
             //游戏开始，进入准备阶段
@@ -126,8 +126,6 @@ class GroupService extends Service {
     async end(room_name, r, b) {
         const { app, ctx } = this;
         console.log('game end')
-
-        await app.redis.del('group_major_subject_' + room_name)
         await app.redis.del('group_room_' + room_name)
 
         const data = await this.roomEnd(room_name, r, b)
