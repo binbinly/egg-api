@@ -38,9 +38,9 @@ class GameMatch extends Subscription {
                     //生成房间
                     const new_room = key + '_' + (new Date().getTime())
                     if (type == 1) {//抢题模式
-                        await this.ctx.service.group.gameStart(id, new_room, red, blue)
+                        await this.ctx.service.group.start(id, new_room, red, blue)
                     } else if (type == 2) {
-                        await this.ctx.service.question.gameStart(id, new_room, red, blue)
+                        await this.ctx.service.question.start(id, new_room, red, blue)
                     } else {
                         console.log('type error', type)
                     }

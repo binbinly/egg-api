@@ -10,10 +10,13 @@ class TestController extends Controller {
 
     async rush() {
         this.ctx.body = 'hello'
-        const {env} = this.ctx.request.query
+        let {env, t} = this.ctx.request.query
         let host = 'http://127.0.0.1:7001/'
         if (env == 'online') {
             host = 'http://api.lifetrifles.com/'
+        }
+        if (!t) {
+            t = 1
         }
 
         //进入房间
@@ -25,7 +28,7 @@ class TestController extends Controller {
         //开始匹配
         for (let i = 1; i<=6; i++){
             const match = 'group/match?user_id='+ i +'&major_id=1'
-            const result = await this.post(host, match, {id:1, type:1, act:1})
+            const result = await this.post(host, match, {id:1, type:t, act:1})
             console.log(result.data)
         }
     }

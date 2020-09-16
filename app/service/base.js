@@ -56,13 +56,52 @@ class BaseService extends Service {
     }
 
     /**
+     * 房间销毁，统计分数
+     * @param {*} room_name 
+     * @param {*} r 
+     * @param {*} b 
+     */
+    async roomEnd(room_name, r, b) {
+        const { app } = this
+        let data_r = []
+        let data_b = []
+        //结算
+        const score_list = await app.redis.hgetall('group_answer_user_' + room_name)
+        await app.redis.del('group_answer_user_' + room_name)
+        let score_red = 0
+        let score_blue = 0
+        //计算分数
+        for (const i in r) {
+            let user_id = r[i].user_id
+            let score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
+            data_r.push({ user_id, score })
+            score_red += score
+            await app.redis.del('user_room_' + user_id)
+        }
+        data_r.sort((a, b) => {
+            return b.score - a.score
+        })
+        for (const i in b) {
+            let user_id = r[i].user_id
+            let score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
+            data_r.push({ user_id, score })
+            score_red += score
+            await app.redis.del('user_room_' + user_id)
+        }
+        data_b.sort((a, b) => {
+            return b.score - a.score
+        })
+        return { data_r, data_b, score_red, score_blue }
+    }
+
+    /**
      * 随机红/蓝方优先
      */
     async random(room_name) {
         const { app } = this
         const arr = ['red', 'blue']
         const write = arr[Math.floor((Math.random() * arr.length))]
-        await app.redis.hset('group_room_' + room_name, 'cur_write', write)
+        await app.redis.hmset('group_room_' + room_name, 'write', write)
         return write
     }
 

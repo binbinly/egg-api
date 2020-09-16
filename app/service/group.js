@@ -7,7 +7,7 @@ const Service = require('./base');
  */
 class GroupService extends Service {
 
-    ready_time = 5  //准备时间
+    ready_time = 1  //准备时间
     rush_time = 5   //抢题时间
     answer_time = 10    //答题时间
 
@@ -17,13 +17,12 @@ class GroupService extends Service {
      * @param {*} red 
      * @param {*} blue 
      */
-    async gameStart(id, room_name, red, blue) {
+    async start(id, room_name, red, blue) {
         const { ctx, app } = this
         const { r, b } = await this.roomInit(red, blue, room_name)
 
-
         //题目列表
-        const list = await ctx.model.Subject.getAll(id, 5);
+        const list = await ctx.model.Subject.getAll(id, 3);
         const subject = list.pop()
         //题放入队列
         list.forEach(async val => {
@@ -32,21 +31,22 @@ class GroupService extends Service {
         this.send(r, 'group_start', { r, b, time: this.ready_time })
         this.send(b, 'group_start', { r, b, time: this.ready_time })
         
-        //游戏开始，进入准备阶段
+        //游戏开始，进入准备阶段， 动画时间 3s
         app.queue_group_ready.push({ subject, room_name, r, b, time: this.ready_time + 3 }, function (err) {
             console.log('finished processing foo');
         });
     }
 
     /**
-     * 准备完成
+     * 准备开始
      */
     async ready(room_name, r, b) {
         const { app } = this
         const subject_str = await app.redis.rpop('group_major_subject_' + room_name)
         if (subject_str) {
             let subject = JSON.parse(subject_str)
-            await app.redis.hdel('group_room_' + room_name, 'user_id', 'cur_write', 'write')
+            await app.redis.hdel('group_room_' + room_name, 'user_id', 'rush', 'write')
+            await app.redis.hset('group_room_' + room_name, 'status', 1)
             this.send(r, 'group_ready', { time: this.ready_time })
             this.send(b, 'group_ready', { time: this.ready_time })
             //游戏开始，进入准备阶段
@@ -54,12 +54,12 @@ class GroupService extends Service {
                 console.log(err);
             });
         } else {
-            this.gameEnd(room_name, r, b)
+            this.end(room_name, r, b)
         }
     }
 
     /**
-     * 抢题
+     * 抢题开始
      */
     async rushAnswer(subject, room_name, r, b) {
         const { app } = this
@@ -75,29 +75,15 @@ class GroupService extends Service {
     }
 
     /**
-     * 切换答题方
+     * 推题，答题开始
+     * @param {*} subject 
      * @param {*} room_name 
      * @param {*} r 
      * @param {*} b 
      */
-    async switchGroup(subject, room_name, r, b) {
-        const { app } = this
-        if (await app.redis.exists('group_answer_subject_' + subject['id'])) {//有人回答正确，不用切换答题方
-            //可以直接进入下一题
-            this.nextSubject(room_name, r, b)
-            return
-        }
-        const room_info = await app.redis.hgetall('group_room_' + room_name)
-        const write = room_info.cur_write == 'red' ? 'blue' : 'red'
-        await app.redis.hmset('group_room_' + room_name, { cur_write: write })
-        this.send(r, 'group_switch', { write, time: this.answer_time })
-        this.send(b, 'group_switch', { write, time: this.answer_time })
-    }
-
-    //推题
     async pushSubject(subject, room_name, r, b) {
         const { app } = this;
-        let write = await app.redis.hget('group_room_' + room_name, 'cur_write')
+        let write = await app.redis.hget('group_room_' + room_name, 'write')
         if (!write) {
             write = await this.random(room_name)
         }
@@ -111,44 +97,43 @@ class GroupService extends Service {
     }
 
     /**
+     * 切换答题方
+     * @param {*} room_name 
+     * @param {*} r 
+     * @param {*} b 
+     */
+    async switch(id, room_name, r, b) {
+        const { app } = this
+        if (await app.redis.exists('group_answer_subject_' + id)) {//有人回答正确，不用切换答题方
+            //可以直接进入下一题
+            await app.redis.hset('group_room_' + room_name, id, 2)
+            this.ready(room_name, r, b)
+            return
+        }
+        let write = await app.redis.hget('group_room_' + room_name, 'write')
+        write = write == 'red' ? 'blue' : 'red'
+        await app.redis.hset('group_room_' + room_name, 'write', write)
+        this.send(r, 'group_switch', { write, time: this.answer_time })
+        this.send(b, 'group_switch', { write, time: this.answer_time })
+    }
+
+    /**
      * 游戏结束
      * @param {*} room_name 
      * @param {*} r 
      * @param {*} b 
      */
-    async gameEnd(room_name, r, b) {
+    async end(room_name, r, b) {
         const { app, ctx } = this;
         console.log('game end')
 
         await app.redis.del('group_major_subject_' + room_name)
         await app.redis.del('group_room_' + room_name)
-        let data_r = []
-        let data_b = []
-        //结算
-        const score_list = await app.redis.hgetall('group_answer_user_' + room_name)
-        await app.redis.del('group_answer_user_' + room_name)
-        //计算分数
-        for (const i in r) {
-            let score = 0
-            score += parseInt(score_list[r[i].user_id]);
-            data_r.push({ user_id: r[i].user_id, score })
-            await app.redis.del('user_room_' + r[i].user_id)
-        }
-        data_r.sort((a, b) => {
-            return b.score - a.score
-        })
-        for (const i in b) {
-            let score = 0
-            score += parseInt(score_list[b[i].user_id]);
-            data_b.push({ user_id: b[i].user_id, score })
-            await app.redis.del('user_room_' + b[i].user_id)
-        }
-        data_b.sort((a, b) => {
-            return b.score - a.score
-        })
+        
+        const data = await this.roomEnd(room_name, r, b)
         //发送消息
-        this.send(r, 'group_end', { data_r, data_b })
-        this.send(b, 'group_end', { data_r, data_b })
+        this.send(r, 'group_end', data)
+        this.send(b, 'group_end', data)
     }
 }
 

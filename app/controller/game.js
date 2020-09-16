@@ -15,7 +15,7 @@ class GameController extends Controller {
         const major_id = user.major_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true }
+            id: { type: 'int', required: true, min: 1 }
         });
         //专业id
         const { id } = ctx.request.body;
@@ -110,9 +110,9 @@ class GameController extends Controller {
         const user_id = ctx.auth.user_id;
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true },    //题目id
-            option_id: { type: 'int', required: true }, //选择选项
-            second: { type: 'int', required: true } //答题用时
+            id: { type: 'int', required: true, min: 1 },    //题目id
+            option_id: { type: 'int', required: true, min: 1 }, //选择选项
+            second: { type: 'int', required: true, min: 1 } //答题用时
         });
         //专业id
         const { id, option_id, second } = ctx.request.body;

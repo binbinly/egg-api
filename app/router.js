@@ -29,7 +29,7 @@ module.exports = app => {
 
   router.post('/group/rush', controller.rush.rush)  //抢题
   router.post('/group/answer', controller.rush.answer) 
-  router.post('/group/set_choice', controller.question.choice)
+  router.post('/group/choice', controller.question.choice)
   router.post('/group/set_answer', controller.question.answer)
 
   app.ws.use(async (ctx, next) => {

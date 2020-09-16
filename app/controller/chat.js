@@ -22,7 +22,6 @@ class ChatController extends Controller {
                 if (app.ws.user && app.ws.user[user_id]) {
                     delete app.ws.user[user_id];
                 }
-                console.log('colose end')
             });
     }
 }

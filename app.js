@@ -47,7 +47,7 @@ class AppBootHook {
 
     //个人赛进入房间
     app.queue_game_in = async.queue(function (obj, callback) {
-      console.log('queue game in', obj)
+      console.log('queue game in')
       const start_time = new Date().getTime()
       setTimeout(async () => {
         console.log('settimeout')
@@ -71,7 +71,7 @@ class AppBootHook {
 
     //个人赛推送题目
     app.queue_game_run = async.queue(function (obj, callback) {
-      console.log('queue game run', obj)
+      console.log('queue game run')
       const { subject, room_name, user_ids, time } = obj
       setTimeout(async () => {
         console.log('timeout')
@@ -89,7 +89,7 @@ class AppBootHook {
 
     //团队赛，准备队列
     app.queue_group_ready = async.queue(function (obj, callback) {
-      console.log('group ready', obj)
+      console.log('group ready')
       const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout ready')
@@ -102,7 +102,7 @@ class AppBootHook {
 
     //团队赛 枪题队列
     app.queue_group_rush = async.queue(function (obj, callback) {
-      console.log('group rush', obj)
+      console.log('group rush')
       const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout rush')
@@ -115,7 +115,7 @@ class AppBootHook {
 
     //团队赛 推送题目
     app.queue_group_run = async.queue(function (obj, callback) {
-      console.log('group run', obj)
+      console.log('group run')
       const { subject, room_name, r, b, time } = obj
       setTimeout(async () => {
         console.log('timeout run')
@@ -134,7 +134,7 @@ class AppBootHook {
         console.log('timeout switch')
         const is = await app.redis.hexists('group_room_' + room_name, subject['id'])
         if (!is) {
-          await ctx.service.group.switchGroup(subject, room_name, r, b)
+          await ctx.service.group.switch(subject['id'], room_name, r, b)
         } else {
           console.log('skip')
         }
@@ -143,10 +143,10 @@ class AppBootHook {
 
     //团队赛 出题模式 - 选题
     app.queue_group_set_choice = async.queue(function (obj, callback) {
-      console.log('group choice', obj)
-      const { subject, room_name, r, b, time } = obj
+      console.log('group choice')
+      const { list, room_name, r, b, time } = obj
       setTimeout(async () => {
-        //await ctx.service.group.pushSubject(subject, room_name, r, b)
+        await ctx.service.question.push(list, room_name, r, b)
         if (typeof callback === 'function') {
           callback();
         }
@@ -155,10 +155,10 @@ class AppBootHook {
 
     //团队赛 出题模式 - 答题
     app.queue_group_set_answer = async.queue(function (obj, callback) {
-      console.log('group answer', obj)
-      const { subject, room_name, r, b, time } = obj
+      console.log('group answer')
+      const { room_name, r, b, time } = obj
       setTimeout(async () => {
-        //await ctx.service.group.pushSubject(subject, room_name, r, b)
+        await ctx.service.question.choice(room_name, r, b)
         if (typeof callback === 'function') {
           callback();
         }

@@ -7,9 +7,9 @@ const Service = require('./base');
  */
 class QuestionService extends Service {
 
-    set_time = 15 //出题时间
+    set_time = 20 //出题时间
     answer_time = 20 //答题时间
-    round_count = 6 //轮次
+    round_count = 4 //轮次
 
     /**
      * 游戏开始
@@ -22,6 +22,9 @@ class QuestionService extends Service {
 
         const { r, b } = await this.roomInit(red, blue, room_name)
         const list = await ctx.model.Subject.getAll(id, 4);
+        const ids = list.map(v => {
+            return v.id
+        })
         //随机答题方
         const write = await this.random(room_name)
 
@@ -30,11 +33,13 @@ class QuestionService extends Service {
 
         await app.redis.hmset('group_room_' + room_name, {
             round: 1,
-            write
+            write,
+            id,
+            ids: ids.join('_')
         })
 
         //游戏开始，进入准备阶段
-        app.queue_group_set_choice.push({ list, room_name, r, b, time: this.ready_time + 3 }, function (err) {
+        app.queue_group_set_choice.push({ list, room_name, r, b, time: this.set_time + 3 }, function (err) {
             console.log('finished processing foo');
         });
     }
@@ -49,32 +54,59 @@ class QuestionService extends Service {
         if (room_info.round >= this.round_count) {
             return this.end(room_name, r, b)
         }
-        const list = await ctx.model.Subject.getAll(id, 4);
+        const list = await ctx.model.Subject.getAll(room_info.id, 4);
+        const ids = list.map(v => {
+            return v.id
+        })
         const write = room_info.write == 'red' ? 'blue' : 'red'
         await app.redis.hmset('group_room_' + room_name, {
-            round: room_info.round + 1,
-            write
+            round: parseInt(room_info.round) + 1,
+            write,
+            ids: ids.join('_'),
+            status:1
         })
+        if (room_info.choice){
+            await app.redis.hdel('group_room_' + room_name, 'choice', 'choice_id')
+        }
         this.send(r, 'group_set_choice', { list, r, b, write, time: this.set_time })
         this.send(b, 'group_set_choice', { list, r, b, write, time: this.set_time })
 
         //游戏开始，进入准备阶段
-        app.queue_group_set_choice.push({ list, room_name, r, b, time: this.ready_time }, function (err) {
+        app.queue_group_set_choice.push({ list, room_name, r, b, time: this.set_time }, function (err) {
             console.log('finished processing foo');
         });
     }
 
     /**
-     * 答题
+     * 推送答题题目
      */
-    async answer(list, room_name, r, b) {
+    async push(list, room_name, r, b) {
+        const { app } = this;
+        let room_info = await app.redis.hgetall('group_room_' + room_name)
+        let choice_id = room_info.choice_id
+        if (!choice_id) {//三个人，没有全选
+            if (room_info.choice) {
+                choice_id = this.choiceDo(JSON.parse(room_info.choice))
+            } else {//无人选，系统自动选题
+                const ids = room_info.ids.split('_')
+                choice_id = ids[Math.floor(Math.random() * ids.length)]
+            }
+        }
+        await app.redis.hmset('group_room_' + room_name, { status: 2, curr_subject_id: choice_id })
+        //出题方，答题方相反
+        const write = room_info.write == 'red' ? 'blue' : 'red'
+        this.send(r, 'group_set_next', { choice_id, time: this.answer_time, write })
+        this.send(b, 'group_set_next', { choice_id, time: this.answer_time, write })
 
+        app.queue_group_set_answer.push({ list, room_name, r, b, time: this.answer_time }, function (err) {
+            console.log(err);
+        });
     }
 
     /**
-     * 计算选题结果
+     * 从已选题中选择一道题
      */
-    async choiceDo(choince) {
+    choiceDo(choince) {
         const ids = Object.values(choince)
         if (ids.length == 1) {//一个人选，直接返回该题
             return ids[0]
@@ -89,7 +121,7 @@ class QuestionService extends Service {
                 for (const key in ids) {
                     if (ids.hasOwnProperty(key)) {
                         const element = ids[key];
-                        if (c[element] ) {
+                        if (c[element]) {
                             c[element]++
                         } else {
                             c[element] = 1
@@ -114,8 +146,16 @@ class QuestionService extends Service {
     /**
      * 游戏结束
      */
-    async end() {
+    async end(room_name, r, b) {
+        const { app } = this;
+        console.log('game end')
 
+        await app.redis.del('group_room_' + room_name)
+        const data = await this.roomEnd(room_name, r, b)
+
+        //发送消息
+        this.send(r, 'group_set_end', data)
+        this.send(b, 'group_set_end', data)
     }
 }
 

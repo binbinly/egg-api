@@ -111,7 +111,7 @@ class GroupController extends Controller {
         const user_id = ctx.auth.user_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true },    //被踢用户
+            id: { type: 'int', required: true, min: 1 },    //被踢用户
         });
         //专业id
         const { id } = ctx.request.body;
@@ -161,7 +161,7 @@ class GroupController extends Controller {
         const user_id = ctx.auth.user_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true },    //邀请用户id
+            id: { type: 'int', required: true, min: 1 },    //邀请用户id
         });
         //专业id
         const { id } = ctx.request.body;
@@ -188,7 +188,7 @@ class GroupController extends Controller {
         const user_id = ctx.auth.user_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true },    //邀请者用户id
+            id: { type: 'int', required: true, min: 1 },    //邀请者用户id
             status: { type: 'int', required: true }
         });
         //专业id
@@ -256,20 +256,20 @@ class GroupController extends Controller {
         const major_id = user.major_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true },
-            type: { type: 'int', required: true },
+            id: { type: 'int', required: true, min: 1 },
+            type: { type: 'int', required: true, values: [2, 1] },
             act: { type: 'int', required: false, default: 1 } // 1=开始匹配 0=取消匹配
         })
-         //所在房间
-         const room_name = await app.redis.hget('user_group_room', user_id)
-         if (!room_name) {
-             return this.error(500, '不在房间内')
-         }
-         const list = await app.redis.hgetall(room_name)
-         if (!list || !list['master']) {
-             return this.error(500, '信息错误')
-         }
-         const master = JSON.parse(list['master'])
+        //所在房间
+        const room_name = await app.redis.hget('user_group_room', user_id)
+        if (!room_name) {
+            return this.error(500, '不在房间内')
+        }
+        const list = await app.redis.hgetall(room_name)
+        if (!list || !list['master']) {
+            return this.error(500, '信息错误')
+        }
+        const master = JSON.parse(list['master'])
         if (master.user_id == user_id) {
             //专业id
             const { id, type, act } = ctx.request.body;
