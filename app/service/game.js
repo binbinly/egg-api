@@ -31,7 +31,7 @@ class GameService extends Service {
         });
         //生成房间
         await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id })
-
+        await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
             ctx.send(uid, 'game_start', { subject, time: this.answer_time })
@@ -78,18 +78,14 @@ class GameService extends Service {
 
         await app.redis.del('major_subject_' + room_name)
         await app.redis.del('room_' + room_name)
+
+        const score_list = await app.redis.hgetall('answer_user_' + room_name)
+        await app.redis.del('answer_user_' + room_name)
         let data = []
         //计算分数
         for (const i in user_ids) {
             //结算
-            const score_list = await app.redis.hgetall('answer_user_' + user_ids[i])
-            await app.redis.del('answer_user_' + user_ids[i])
-            let score = 0
-            for (const key in score_list) {
-                if (score_list.hasOwnProperty(key)) {
-                    score += parseInt(score_list[key]);
-                }
-            }
+            let score = score_list[user_ids[i]] ? parseInt(score_list[user_ids[i]]) : 0
             data.push({ user_id: user_ids[i], score })
         }
         data.sort((a, b) => {

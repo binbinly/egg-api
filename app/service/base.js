@@ -45,6 +45,7 @@ class BaseService extends Service {
             user_ids_r: user_ids_r.join('_'),
             user_ids_b: user_ids_b.join('_')
         })
+        await app.redis.expire('group_room_' + room_name, 1800)
         //记录所在房间
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)

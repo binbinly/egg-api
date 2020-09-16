@@ -15,7 +15,7 @@ class GameController extends Controller {
         const major_id = user.major_id
         // 验证参数
         ctx.validate({
-            id: { type: 'int', required: true, min: 1 }
+            id: { type: 'int', required: true, min: 1 } //选择专业id
         });
         //专业id
         const { id } = ctx.request.body;
@@ -28,12 +28,11 @@ class GameController extends Controller {
             return this.error(500, '进入失败')
         }
 
-        console.log('count', curr_major_count)
         if (curr_major_count == 0) {
             await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
             app.queue_game_in.push({ major_id, id }, function (err) {
-                console.log('finished processing foo');
+                err && console.log(err)
             });
             return this.success([ctx.auth])
         } else {//发送消息给其他人
@@ -46,7 +45,7 @@ class GameController extends Controller {
                     ctx.send(u.user_id, 'room_in', user)
                 }
             }
-            if (curr_major_count >= 2) {
+            if (curr_major_count >= 5) {
                 await app.redis.setex('start_major_' + major_id + '_' + id, 70, new Date().getTime())
                 await service.game.gameStart(major_id, id);
             }
@@ -161,9 +160,7 @@ class GameController extends Controller {
             }
 
             if (subject_info.true_option == option_id) {//答题正确
-                if (second <= 1) {
-                    second = 1
-                } else if (second >= 20) {
+                if (second >= 20) {
                     second = 19
                 }
                 data.status = true

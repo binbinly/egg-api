@@ -53,12 +53,11 @@ class AppBootHook {
         console.log('settimeout')
         const { major_id, id } = obj;
         const end_time = new Date().getTime()
-        const run_time = app.redis.get('start_major_' + major_id + '_' + id)
+        const run_time = await app.redis.get('start_major_' + major_id + '_' + id)
         if (run_time > start_time && run_time < end_time) {
           console.log('skip')
         } else {
           const count = await app.redis.scard('game_major_' + major_id);
-          console.log('count', count)
           if (count >= 3) {//大于等于3可以开始游戏
             await ctx.service.game.gameStart(major_id, id);
           }

@@ -7,7 +7,7 @@ module.exports = app => {
   const { router, controller } = app;
 
   router.get('/t', controller.test.rush)
-  router.get('/err', controller.test.err)
+  router.get('/in', controller.test.in)
 
   router.get('/', controller.home.index);
   router.get('/cat', controller.home.cat);
