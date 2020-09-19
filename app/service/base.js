@@ -50,8 +50,7 @@ class BaseService extends Service {
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
             //清除匹配信息
-            await app.redis.del('group_room_' + uid)
-            await app.redis.hdel('user_group_room', uid)
+            await app.redis.hdel('group_match_list', 'user_group_'+uid)
         });
         return { r, b }
     }
@@ -88,11 +87,24 @@ class BaseService extends Service {
             data_r.push({ user_id, score })
             score_red += score
             await app.redis.del('user_room_' + user_id)
+            await this.oldRoom(uid)
+            
         }
         data_b.sort((a, b) => {
             return b.score - a.score
         })
+
         return { data_r, data_b, score_red, score_blue }
+    }
+
+    /**
+     * 临时保持房间，方便下一局
+     * @param {*} user_id 
+     */
+    async oldRoom(user_id){
+        const {app} = this
+        await app.redis.rename('user_group_' + user_id, 'old_user_group_' + user_id)
+        await app.redis.rename('user_group_room_' + user_id, 'old_user_group_room_' + user_id)
     }
 
     /**

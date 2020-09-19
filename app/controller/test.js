@@ -33,9 +33,10 @@ class TestController extends Controller {
         //进入房间
         for (let i = 1; i <= 6; i++) {
             const in_game = 'group/in_game?user_id=' + i + '&major_id=1'
-            const result = await this.get(host, in_game)
+            const result = await this.post(host, in_game, {id:1, type:1})
             console.log(result.data)
         }
+        console.log('test match')
         //开始匹配
         for (let i = 1; i <= 6; i++) {
             const match = 'group/match?user_id=' + i + '&major_id=1'

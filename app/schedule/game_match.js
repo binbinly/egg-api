@@ -4,7 +4,7 @@ class GameMatch extends Subscription {
     // 通过 schedule 属性来设置定时任务的执行间隔等配置
     static get schedule() {
         return {
-            interval: '5s', // 1 分钟间隔
+            interval: '1m', // 1 分钟间隔
             type: 'all', // 指定所有的 worker 都需要执行
         };
     }
@@ -36,7 +36,7 @@ class GameMatch extends Subscription {
                     const type = arr[1]
                     const id = arr[2]
                     //生成房间
-                    const new_room = key + '_' + (new Date().getTime())
+                    const new_room = key + '_' + parseInt(new Date().getTime()/1000)
                     if (type == 1) {//抢题模式
                         await this.ctx.service.group.start(id, new_room, red, blue)
                     } else if (type == 2) {
@@ -60,7 +60,9 @@ class GameMatch extends Subscription {
         for (const key in room_names) {
             if (room_names.hasOwnProperty(key)) {
                 const room_name = room_names[key]
-                const users = await app.redis.hgetall(room_name)
+                let users = await app.redis.hgetall(room_name)
+                delete users.id
+                delete users.type
                 let cur_users = Object.values(users)
                 if (cur_users.length == 0) {
                     continue

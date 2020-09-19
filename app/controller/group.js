@@ -14,8 +14,94 @@ class GroupController extends Controller {
         const { ctx, app } = this;
         // 拿到当前用户id
         const user_id = ctx.auth.user_id
-        await app.redis.hset('group_room_' + user_id, 'master', JSON.stringify(ctx.auth))
-        await app.redis.hset('user_group_room', user_id, 'group_room_' + user_id)
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true, min: 1 },
+            type: { type: 'int', required: true, values: [2, 1] }
+        })
+        const { id, type } = ctx.request.body
+        await app.redis.hmset('user_group_' + user_id, { master: JSON.stringify(ctx.auth), id, type })
+        await app.redis.set('user_group_room_' + user_id, 'user_group_' + user_id)
+        await app.redis.expire('user_group_' + user_id, 1800)
+        await app.redis.expire('user_group_room_' + user_id, 1800)
+        return this.success()
+    }
+
+    /**
+     * 再来一局
+     */
+    async nextGame() {
+        const { ctx, app } = this;
+        // 拿到当前用户id
+        const user_id = ctx.auth.user_id
+        if (await app.redis.exists('user_group_room_' + user_id)) {
+            return this.error(500, '已经在房间内')
+        }
+        const old_room_name = await app.redis.get('old_user_group_room_' + user_id)
+        if (!old_room_name) {
+            return this.error(500, '已过期了哦')
+        }
+        const old_room_info = await app.redis.hgetall(old_room_name)
+        if (!old_room_info) {
+            return this.error(500, '房间信息已过期了哦')
+        }
+        //房间内人状态房主/房客
+        let room_type = ''
+        let user_info = {}
+        for (const key in old_room_info) {
+            if (old_room_info.hasOwnProperty(key)) {
+                if (key == 'master' || key == 'slave1' || key == 'slave2') {
+                    const element = JSON.parse(old_room_info[key])
+                    if (element.user_id == user_id) {
+                        room_type = key
+                        user_info = element
+                    }
+                }
+            }
+        }
+        if (room_info == '') {
+            return this.error(500, '信息错误')
+        }
+        const room_name = old_room_name.slice(4)
+        if (await app.redis.exists(room_name)) {//有人已经在房间内
+            const users = await app.redis.hgetall(room_name)
+
+        }
+        const room_info = await app.redis.hgetall()
+    }
+
+    /**
+     * 修改房间信息
+     */
+    async edit() {
+        const { ctx, app } = this;
+        // 拿到当前用户id
+        const user_id = ctx.auth.user_id
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true, min: 1 },
+            type: { type: 'int', required: true, values: [2, 1] }
+        })
+        const { id, type } = ctx.request.body
+        //所在房间
+        const room_name = await app.redis.get('user_group_room_' + user_id)
+        if (!room_name) {
+            return this.error(500, '不在房间内')
+        }
+        const list = await app.redis.hgetall(room_name)
+        if (!list || !list['master']) {
+            return this.error(500, '信息错误')
+        }
+        const master = JSON.parse(list['master'])
+        if (master.user_id != user_id) {
+            return this.error(500, '没有权限哦')
+        }
+        if (list.id == id && list.type == type) {
+            return this.success()
+        }
+        await app.redis.hmset('group_room_' + user_id, { id, type })
+        //发送消息
+        this.sendRoomMsg(list, ['slave1', 'slave2'], 'group_room_edit', { id, type })
         return this.success()
     }
 
@@ -27,7 +113,7 @@ class GroupController extends Controller {
         // 拿到当前用户id
         const user_id = ctx.auth.user_id
         //所在房间
-        const room_name = await app.redis.hget('user_group_room', user_id)
+        const room_name = await app.redis.get('user_group_room_' + user_id)
         if (!room_name) {
             return this.error(500, '未在房间内')
         }
@@ -44,7 +130,7 @@ class GroupController extends Controller {
                     let new_master = 0
                     if (user_count == 1) {//只有群主自己
                         await app.redis.del(room_name)
-                        await app.redis.hdel('user_group_room', user_id)
+                        await app.redis.del('user_group_room_' + user_id)
                         return this.success()
                     } else if (user_count == 2) {//邀请了一个用户
                         if (list['slave1']) {
@@ -82,7 +168,7 @@ class GroupController extends Controller {
                 }
             }
         }
-        await app.redis.hdel('user_group_room', user_id)
+        await app.redis.del('user_group_room_' + user_id)
         return this.success()
     }
 
@@ -116,7 +202,7 @@ class GroupController extends Controller {
         //专业id
         const { id } = ctx.request.body;
         //所在房间
-        const room_name = await app.redis.hget('user_group_room', user_id)
+        const room_name = await app.redis.get('user_group_room_' + user_id)
         if (!room_name) {
             return this.error(500, '未在房间内')
         }
@@ -134,7 +220,7 @@ class GroupController extends Controller {
                     if (suc) {
                         this.sendRoomMsg(list, ['slave2'], 'group_room_kick', { user_id: id })
                     }
-                    await app.redis.hdel('user_group_room', id)
+                    await app.redis.del('user_group_room_' + id)
                     return this.success()
                 }
             }
@@ -145,7 +231,7 @@ class GroupController extends Controller {
                     if (suc) {
                         this.sendRoomMsg(list, ['slave1'], 'group_room_kick', { user_id: id })
                     }
-                    await app.redis.hdel('user_group_room', id)
+                    await app.redis.del('user_group_room_' + id)
                     return this.success()
                 }
             }
@@ -199,7 +285,7 @@ class GroupController extends Controller {
         }
         await app.redis.del('invite_' + id + '_to_' + user_id)
         //所在房间
-        const room_name = await app.redis.hget('user_group_room', id)
+        const room_name = await app.redis.get('user_group_room_' + id)
         if (!room_name) {
             return this.error(500, '未在房间内')
         }
@@ -210,9 +296,11 @@ class GroupController extends Controller {
         }
         for (const key in list) {
             if (list.hasOwnProperty(key)) {
-                const element = JSON.parse(list[key]);
-                if (element.user_id == user_id) {
-                    return this.error(500, '已经在房间内哦')
+                if (key == 'master' || key == 'slave1' || key == 'slave2') {
+                    const element = JSON.parse(list[key]);
+                    if (element.user_id == user_id) {
+                        return this.error(500, '已经在房间内哦')
+                    }
                 }
             }
         }
@@ -229,13 +317,15 @@ class GroupController extends Controller {
             if (!suc) {
                 return this.error(500, '操作失败了')
             }
-            await app.redis.hset('user_group_room', user_id, 'group_room_' + id)
+            await app.redis.set('user_group_room_' + user_id, 'group_room_' + id)
             data.user = ctx.auth
             for (const key in list) {
                 if (list.hasOwnProperty(key)) {
                     const element = JSON.parse(list[key]);
-                    list[key] = element
-                    ctx.send(element.user_id, 'invite_accept', data)
+                    if (typeof Object) {
+                        list[key] = element
+                        ctx.send(element.user_id, 'invite_accept', data)
+                    }
                 }
             }
             return this.success(list)
@@ -261,7 +351,7 @@ class GroupController extends Controller {
             act: { type: 'int', required: false, default: 1 } // 1=开始匹配 0=取消匹配
         })
         //所在房间
-        const room_name = await app.redis.hget('user_group_room', user_id)
+        const room_name = await app.redis.get('user_group_room_' + user_id)
         if (!room_name) {
             return this.error(500, '不在房间内')
         }

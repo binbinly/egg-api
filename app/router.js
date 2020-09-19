@@ -12,15 +12,20 @@ module.exports = app => {
   router.get('/', controller.home.index);
   router.get('/cat', controller.home.cat);
   router.get('/conf', controller.home.conf);
-  router.get('/subject', controller.home.subject);
   router.post('/login', controller.home.login)
+
+  router.get('/search_count', controller.other.searchCount)
+  router.post('/search_info', controller.other.searchInfo)
+  router.get('/spell_count', controller.other.spellCount)
+  router.post('/spell_info', controller.other.spellInfo)
 
   router.post('/in_game', controller.game.inGame)
   router.get('/out_game', controller.game.outGame)
   router.post('/game_answer', controller.game.answer)
   router.post('/game_message', controller.game.message)
 
-  router.get('/group/in_game', controller.group.inGame)
+  router.post('/group/in_game', controller.group.inGame)
+  router.post('/group/room_edit', controller.group.edit)
   router.get('/group/out_game', controller.group.outGame)
   router.post('/group/invite', controller.group.invite)
   router.post('/group/invite_do', controller.group.inviteDo)
