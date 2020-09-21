@@ -37,11 +37,11 @@ class GroupController extends Controller {
         if (await app.redis.exists('user_group_room_' + user_id)) {
             return this.error(500, '已经在房间内')
         }
-        const old_room_name = await app.redis.get('old_user_group_room_' + user_id)
-        if (!old_room_name) {
+        const room_name = await app.redis.get('old_user_group_room_' + user_id)
+        if (!room_name) {
             return this.error(500, '已过期了哦')
         }
-        const old_room_info = await app.redis.hgetall(old_room_name)
+        const old_room_info = await app.redis.hgetall('old_' + room_name)
         if (!old_room_info) {
             return this.error(500, '房间信息已过期了哦')
         }
@@ -59,15 +59,36 @@ class GroupController extends Controller {
                 }
             }
         }
-        if (room_info == '') {
+        if (room_type == '') {
             return this.error(500, '信息错误')
         }
-        const room_name = old_room_name.slice(4)
+        await app.redis.del('old_user_group_room_' + user_id)
         if (await app.redis.exists(room_name)) {//有人已经在房间内
             const users = await app.redis.hgetall(room_name)
-
+            await app.redis.hset(room_name, room_type, JSON.stringify(user_info))
+            await app.redis.set('user_group_room_' + user_id, room_name)
+            //发送消息
+            for (const key in users) {
+                if (users.hasOwnProperty(key)) {
+                    if (key == 'master' || key == 'slave1' || key == 'slave2') {
+                        const element = JSON.parse(users[key]);
+                        users[key] = element
+                        ctx.send(element.user_id, 'invite_accept', user_info)
+                    }
+                }
+            }
+            return this.success(users)
+        } else {
+            let room = {}
+            room[room_type] = JSON.stringify(user_info)
+            room.id = old_room_info.id
+            room.type = old_room_info.type
+            await app.redis.hmset(room_name, room)
+            await app.redis.set('user_group_room_' + user_id, room_name)
+            await app.redis.expire(room_name, 1800)
+            await app.redis.expire('user_group_room_' + user_id, 1800)
+            return this.success()
         }
-        const room_info = await app.redis.hgetall()
     }
 
     /**
@@ -99,7 +120,7 @@ class GroupController extends Controller {
         if (list.id == id && list.type == type) {
             return this.success()
         }
-        await app.redis.hmset('group_room_' + user_id, { id, type })
+        await app.redis.hmset('user_group_' + user_id, { id, type })
         //发送消息
         this.sendRoomMsg(list, ['slave1', 'slave2'], 'group_room_edit', { id, type })
         return this.success()
@@ -121,9 +142,10 @@ class GroupController extends Controller {
         if (!list) {
             return this.error(500, '信息错误')
         }
-        const user_count = Object.keys(list).length
+        const user_count = Object.keys(list).length - 2
         console.log('count', user_count)
         for (const key in list) {
+            if (list == 'id' || list == 'type') continue
             if (list.hasOwnProperty(key)) {
                 const element = JSON.parse(list[key]);
                 if (key == 'master' && element.user_id == user_id) {
@@ -255,7 +277,7 @@ class GroupController extends Controller {
         if (ret) {
             return this.error(500, '游戏进行中哦')
         }
-        if (!await app.redis.exists('group_room_' + user_id)) {
+        if (!await app.redis.exists('user_group_' + user_id)) {
             return this.error(500, '请先进入房间')
         }
         await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
@@ -308,16 +330,16 @@ class GroupController extends Controller {
         if (status == 1) {//同意邀请
             let suc = false
             if (!list['slave1']) {
-                suc = await app.redis.hset('group_room_' + id, 'slave1', JSON.stringify(ctx.auth))
+                suc = await app.redis.hset('user_group_' + id, 'slave1', JSON.stringify(ctx.auth))
             } else if (!list['slave2']) {
-                suc = await app.redis.hset('group_room_' + id, 'slave2', JSON.stringify(ctx.auth))
+                suc = await app.redis.hset('user_group_' + id, 'slave2', JSON.stringify(ctx.auth))
             } else {
                 return this.error(500, '房间满了')
             }
             if (!suc) {
                 return this.error(500, '操作失败了')
             }
-            await app.redis.set('user_group_room_' + user_id, 'group_room_' + id)
+            await app.redis.set('user_group_room_' + user_id, 'user_group_' + id)
             data.user = ctx.auth
             for (const key in list) {
                 if (list.hasOwnProperty(key)) {

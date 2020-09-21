@@ -1,5 +1,7 @@
 'use strict';
 
+const AppBootHook = require('../../app');
+
 const Service = require('egg').Service;
 
 class BaseService extends Service {
@@ -50,7 +52,7 @@ class BaseService extends Service {
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
             //清除匹配信息
-            await app.redis.hdel('group_match_list', 'user_group_'+uid)
+            await app.redis.hdel('group_match_list', 'user_group_' + uid)
         });
         return { r, b }
     }
@@ -72,23 +74,21 @@ class BaseService extends Service {
         let score_blue = score_list['blue'] ? parseInt(score_list['blue']) : 0
         //计算分数
         for (const i in r) {
-            let user_id = r[i].user_id
-            let score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
+            const user_id = r[i].user_id
+            const score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
             data_r.push({ user_id, score })
             score_red += score
-            await app.redis.del('user_room_' + user_id)
+            await this.roomStatusSave(user_id)
         }
         data_r.sort((a, b) => {
             return b.score - a.score
         })
         for (const i in b) {
-            let user_id = r[i].user_id
-            let score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
+            const user_id = b[i].user_id
+            const score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
             data_r.push({ user_id, score })
-            score_red += score
-            await app.redis.del('user_room_' + user_id)
-            await this.oldRoom(uid)
-            
+            score_blue += score
+            await this.roomStatusSave(user_id)
         }
         data_b.sort((a, b) => {
             return b.score - a.score
@@ -98,13 +98,19 @@ class BaseService extends Service {
     }
 
     /**
-     * 临时保持房间，方便下一局
+     * 临时保持房间状态，方便下一局
      * @param {*} user_id 
      */
-    async oldRoom(user_id){
-        const {app} = this
-        await app.redis.rename('user_group_' + user_id, 'old_user_group_' + user_id)
-        await app.redis.rename('user_group_room_' + user_id, 'old_user_group_room_' + user_id)
+    async roomStatusSave(user_id) {
+        const { app } = this
+        console.log('user_id', user_id)
+        await app.redis.del('user_room_' + user_id)
+        if (await app.redis.exists('user_group_' + user_id)) {
+            await app.redis.rename('user_group_' + user_id, 'old_user_group_' + user_id)
+        }
+        if (await app.redis.exists('user_group_room_' + user_id)) {
+            await app.redis.rename('user_group_room_' + user_id, 'old_user_group_room_' + user_id)
+        }
     }
 
     /**

@@ -25,6 +25,7 @@ module.exports = app => {
   router.post('/game_message', controller.game.message)
 
   router.post('/group/in_game', controller.group.inGame)
+  router.get('/group/next_game', controller.group.nextGame)
   router.post('/group/room_edit', controller.group.edit)
   router.get('/group/out_game', controller.group.outGame)
   router.post('/group/invite', controller.group.invite)
