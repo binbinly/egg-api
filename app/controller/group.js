@@ -221,7 +221,6 @@ class GroupController extends Controller {
         ctx.validate({
             id: { type: 'int', required: true, min: 1 },    //被踢用户
         });
-        //专业id
         const { id } = ctx.request.body;
         //所在房间
         const room_name = await app.redis.get('user_group_room_' + user_id)
@@ -235,6 +234,9 @@ class GroupController extends Controller {
 
         const master = JSON.parse(list['master'])
         if (master.user_id == user_id) {
+            //发送给被踢人
+            ctx.send(id, 'group_room_kick', { user_id: id })
+            //发送给房间内的其他人
             if (list['slave1']) {
                 const slave = JSON.parse(list['slave1'])
                 if (slave.user_id == id) {
