@@ -236,6 +236,7 @@ class GroupController extends Controller {
         if (master.user_id == user_id) {
             //发送给被踢人
             ctx.send(id, 'group_room_kick', { user_id: id })
+            await app.redis.del('user_group_room_' + id)
             //发送给房间内的其他人
             if (list['slave1']) {
                 const slave = JSON.parse(list['slave1'])
@@ -244,7 +245,6 @@ class GroupController extends Controller {
                     if (suc) {
                         this.sendRoomMsg(list, ['slave2'], 'group_room_kick', { user_id: id })
                     }
-                    await app.redis.del('user_group_room_' + id)
                     return this.success()
                 }
             }
@@ -255,7 +255,6 @@ class GroupController extends Controller {
                     if (suc) {
                         this.sendRoomMsg(list, ['slave1'], 'group_room_kick', { user_id: id })
                     }
-                    await app.redis.del('user_group_room_' + id)
                     return this.success()
                 }
             }
