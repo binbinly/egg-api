@@ -2,6 +2,9 @@
 
 const Controller = require('./base');
 
+/**
+ * 找一找 拼拼乐
+ */
 class OtherController extends Controller {
 
     /**

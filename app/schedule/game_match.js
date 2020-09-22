@@ -1,5 +1,8 @@
 const Subscription = require('egg').Subscription;
 
+/**
+ * 定时任务 - 团队人员匹配
+ */
 class GameMatch extends Subscription {
     // 通过 schedule 属性来设置定时任务的执行间隔等配置
     static get schedule() {

@@ -2,6 +2,9 @@
 
 const Controller = require('egg').Controller;
 
+/**
+ * 仅测试
+ */
 class TestController extends Controller {
 
     async in() {

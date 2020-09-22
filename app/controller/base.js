@@ -2,6 +2,9 @@
 
 const Controller = require('egg').Controller;
 
+/**
+ * 控制器基类
+*/
 class BaseController extends Controller {
 
     PAGE_SIZE = 10
@@ -34,14 +37,6 @@ class BaseController extends Controller {
             msg,
             data
         };
-    }
-
-    getOffset(){
-        let page = this.ctx.params.page ? parseInt(this.ctx.params.page) : 1;
-        if (page < 1) {
-            page = 1
-        }
-        return (page - 1) * this.PAGE_SIZE
     }
 }
 

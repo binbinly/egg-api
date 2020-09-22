@@ -2,6 +2,9 @@
 
 const Controller = require('egg').Controller;
 
+/**
+ * websocket
+ */
 class ChatController extends Controller {
     async conn() {
         const { ctx, app, service } = this;

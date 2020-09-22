@@ -2,46 +2,10 @@
 
 const Service = require("egg").Service;
 
+/**
+ * redis快捷操作
+ */
 class CacheService extends Service {
-
-    /**
-     * 后去列表
-     * @param {string} key 键
-     * @param {boolean} isChildObject 元素是否为对象
-     * @return {array} 返回数组
-     */
-    async getList(key, isChildObject = false) {
-        const { redis } = this.app;
-        let data = await redis.lrange(key, 0, -1);
-        if (isChildObject) {
-            data = data.map((item) => {
-                return JSON.parse(item);
-            });
-        }
-        return data;
-    }
-
-    /**
-     * 设置列表
-     * @param {string} key 键
-     * @param {object|string} value 值
-     * @param {string} type 类型 push和unshift
-     * @param {Number} expir 过期时间 单位秒
-     * @return {Number} 返回索引
-     */
-    async setList(key, value, type = "push", expir = 0) {
-        const { redis } = this.app;
-        if (expir > 0) {
-            await redis.expire(key, expir);
-        }
-        if (typeof value === "object") {
-            value = JSON.stringify(value);
-        }
-        if (type === "push") {
-            return await redis.rpush(key, value);
-        }
-        return await redis.lpush(key, value);
-    }
 
     /**
      * 设置redis缓存

@@ -4,6 +4,9 @@ const AppBootHook = require('../../app');
 
 const Service = require('egg').Service;
 
+/**
+ * 基类
+ */
 class BaseService extends Service {
 
     /**

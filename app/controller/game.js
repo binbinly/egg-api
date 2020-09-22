@@ -2,6 +2,9 @@
 
 const Controller = require('./base');
 
+/**
+ * 个人赛
+ */
 class GameController extends Controller {
 
     /**

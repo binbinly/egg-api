@@ -273,12 +273,17 @@ class GroupController extends Controller {
         });
         //专业id
         const { id } = ctx.request.body;
-        const ret = await app.redis.get('user_room_' + id)
-        if (ret) {
+        if (await app.redis.get('user_room_' + id)) {
             return this.error(500, '游戏进行中哦')
         }
-        if (!await app.redis.exists('user_group_' + user_id)) {
+        if ( await app.redis.get('user_group_room_' + id)) {
+            return this.error(500, '组队中');
+        }
+        if (!await app.redis.exists('user_group_room_' + user_id)) {
             return this.error(500, '请先进入房间')
+        }
+        if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
+            return this.error(500, '已邀请，请等待对应相应')
         }
         await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
         if (ctx.isOnline(id)) {

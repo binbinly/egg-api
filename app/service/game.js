@@ -2,6 +2,9 @@
 
 const Service = require('egg').Service;
 
+/**
+ * 个人赛
+ */
 class GameService extends Service {
 
     room_time = 60  //s, 房间等待时间

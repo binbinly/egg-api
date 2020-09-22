@@ -1,12 +1,17 @@
 # api
+项目主要目录如下
+/app 应用
+/app/controller 控制器
+/app/extend 类库
+/app/model 模型，对应数据库表
+/app/schedule 定时器
+/app/service 服务 游戏逻辑代码
+/app/router.js 路由定义
 
-
-
-## QuickStart
-
-<!-- add docs here for user -->
-
-see [egg docs][egg] for more detail.
+/config 配置文件
+app.js 主要用于延时队列，延时发送消息至客户端
+package.json 第三方包管理
+其他目录可以忽略
 
 ### Development
 
@@ -22,12 +27,3 @@ $ open http://localhost:7001/
 $ npm start
 $ npm stop
 ```
-
-### npm scripts
-
-- Use `npm run lint` to check code style.
-- Use `npm test` to run unit test.
-- Use `npm run autod` to auto detect dependencies upgrade, see [autod](https://www.npmjs.com/package/autod) for more detail.
-
-
-[egg]: https://eggjs.org
