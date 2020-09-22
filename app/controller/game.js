@@ -90,9 +90,9 @@ class GameController extends Controller {
         //专业id
         const { message } = ctx.request.body;
         const room_name = await app.redis.get('user_room_' + user_id)
-        let user_ids_s = await app.redis.hgetall('room_' + room_name)
+        let user_ids_s = await app.redis.hget('room_' + room_name, 'user_ids')
         if (!user_ids_s) {
-            user_ids_s = await app.redis.hgetall('group_room_' + room_name)
+            user_ids_s = await app.redis.hget('group_room_' + room_name, 'user_ids')
         }
         if (user_ids_s) {
             const user_ids = user_ids_s.split('_')
