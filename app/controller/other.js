@@ -35,7 +35,7 @@ class OtherController extends Controller {
         const { id } = ctx.request.body
         const info = await app.model.SearchConfig.findOne({
             where: {
-                id
+                index:id
             },
             attributes: ['title', 'value']
         })
@@ -73,7 +73,7 @@ class OtherController extends Controller {
         const { id } = ctx.request.body
         const info = await app.model.SpellConfig.findOne({
             where: {
-                id
+                index:id
             },
             attributes: ['title', 'value', 'image']
         })
