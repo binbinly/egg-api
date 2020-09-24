@@ -73,7 +73,7 @@ class GroupController extends Controller {
                     if (key == 'master' || key == 'slave1' || key == 'slave2') {
                         const element = JSON.parse(users[key]);
                         users[key] = element
-                        ctx.send(element.user_id, 'invite_accept', user_info)
+                        ctx.send(element.user_id, 'invite_accept', {user:user_info})
                     }
                 }
             }
@@ -87,7 +87,7 @@ class GroupController extends Controller {
             await app.redis.set('user_group_room_' + user_id, room_name)
             await app.redis.expire(room_name, 1800)
             await app.redis.expire('user_group_room_' + user_id, 1800)
-            return this.success()
+            return this.success({id, type})
         }
     }
 
