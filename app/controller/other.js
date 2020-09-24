@@ -37,7 +37,7 @@ class OtherController extends Controller {
             where: {
                 index:id
             },
-            attributes: ['title', 'value']
+            attributes: ['title', 'value', 'image']
         })
         if (info.value) {
             info.value = JSON.parse(info.value)

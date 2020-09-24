@@ -33,6 +33,7 @@ class GameService extends Service {
         await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
             await app.redis.set('user_room_' + uid, room_name)
+            await app.redis.del('user_one_room_' + uid)
             ctx.send(uid, 'game_start', { subject, time: this.answer_time })
         });
         //游戏开始，开始一题一体推送

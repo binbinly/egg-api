@@ -280,6 +280,9 @@ class GroupController extends Controller {
         if ( await app.redis.get('user_group_room_' + id)) {
             return this.error(500, '组队中');
         }
+        if (await app.redis.exists('user_one_room_' + id )) {
+            return this.error(500, '组队中')
+        }
         if (!await app.redis.exists('user_group_room_' + user_id)) {
             return this.error(500, '请先进入房间')
         }

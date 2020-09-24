@@ -31,6 +31,7 @@ class GameController extends Controller {
             return this.error(500, '进入失败')
         }
 
+        await app.redis.setex('user_one_room_' + user_id, 60, 1)
         if (curr_major_count == 0) {
             await app.redis.expire('game_major_' + major_id, 70)
             //push队列任务
@@ -65,6 +66,7 @@ class GameController extends Controller {
         const user_id = ctx.auth.user_id;
         const major_id = ctx.auth.major_id;
         const ret = await app.redis.srem('game_major_' + major_id, JSON.stringify(ctx.auth))
+        await app.redis.del('user_one_room_' + user_id)
         if (ret) {
             const user_ids = await app.redis.smembers('game_major_' + major_id)
             user_ids.forEach(async u => {
