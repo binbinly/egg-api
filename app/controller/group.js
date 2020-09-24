@@ -64,7 +64,7 @@ class GroupController extends Controller {
         }
         await app.redis.del('old_user_group_room_' + user_id)
         if (await app.redis.exists(room_name)) {//有人已经在房间内
-            const users = await app.redis.hgetall(room_name)
+            let users = await app.redis.hgetall(room_name)
             await app.redis.hset(room_name, room_type, JSON.stringify(user_info))
             await app.redis.set('user_group_room_' + user_id, room_name)
             //发送消息
@@ -73,10 +73,11 @@ class GroupController extends Controller {
                     if (key == 'master' || key == 'slave1' || key == 'slave2') {
                         const element = JSON.parse(users[key]);
                         users[key] = element
-                        ctx.send(element.user_id, 'invite_accept', {user:user_info})
+                        ctx.send(element.user_id, 'invite_accept', { user: user_info, room_type })
                     }
                 }
             }
+            users.room_type = room_type
             return this.success(users)
         } else {
             let room = {}
@@ -87,7 +88,7 @@ class GroupController extends Controller {
             await app.redis.set('user_group_room_' + user_id, room_name)
             await app.redis.expire(room_name, 1800)
             await app.redis.expire('user_group_room_' + user_id, 1800)
-            return this.success({id, type})
+            return this.success({ id: room.id, type: room.type, room_type })
         }
     }
 
@@ -277,10 +278,10 @@ class GroupController extends Controller {
         if (await app.redis.get('user_room_' + id)) {
             return this.error(500, '游戏进行中哦')
         }
-        if ( await app.redis.get('user_group_room_' + id)) {
+        if (await app.redis.get('user_group_room_' + id)) {
             return this.error(500, '组队中');
         }
-        if (await app.redis.exists('user_one_room_' + id )) {
+        if (await app.redis.exists('user_one_room_' + id)) {
             return this.error(500, '组队中')
         }
         if (!await app.redis.exists('user_group_room_' + user_id)) {
