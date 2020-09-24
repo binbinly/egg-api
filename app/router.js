@@ -14,9 +14,9 @@ module.exports = app => {
   router.get('/conf', controller.home.conf);
   router.post('/login', controller.home.login)
 
-  router.get('/search_count', controller.other.searchCount)
+  router.post('/search_count', controller.other.searchCount)
   router.post('/search_info', controller.other.searchInfo)
-  router.get('/spell_count', controller.other.spellCount)
+  router.post('/spell_count', controller.other.spellCount)
   router.post('/spell_info', controller.other.spellInfo)
 
   router.post('/in_game', controller.game.inGame)

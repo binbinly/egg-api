@@ -11,8 +11,16 @@ class OtherController extends Controller {
      * 找一找 - 总关数
      */
     async searchCount() {
-        const { app } = this
-        const count = await app.model.SearchConfig.count()
+        const { app, ctx } = this
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true, min: 1 } //选择专业id
+        });
+        //专业id
+        const { id } = ctx.request.body;
+        const count = await app.model.SearchConfig.count({
+            where: { major_id: id }
+        })
         return this.success({ count })
     }
 
@@ -41,8 +49,16 @@ class OtherController extends Controller {
      * 拼拼乐 - 总关数
      */
     async spellCount() {
-        const { app } = this
-        const count = await app.model.SpellConfig.count()
+        const { app, ctx } = this
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true, min: 1 } //选择专业id
+        });
+        //专业id
+        const { id } = ctx.request.body;
+        const count = await app.model.SpellConfig.count({
+            where: { major_id: id }
+        })
         return this.success({ count })
     }
 
