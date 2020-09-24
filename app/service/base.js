@@ -1,7 +1,5 @@
 'use strict';
 
-const AppBootHook = require('../../app');
-
 const Service = require('egg').Service;
 
 /**
@@ -96,8 +94,21 @@ class BaseService extends Service {
         data_b.sort((a, b) => {
             return b.score - a.score
         })
+        const win = this.getWin(score_red, score_blue)
+        return { data_r, data_b, score_red, score_blue, win }
+    }
 
-        return { data_r, data_b, score_red, score_blue }
+    /**
+     * 获取赢方
+     * @param {*} score_red 
+     * @param {*} score_blue 
+     */
+    getWin(score_red, score_blue) {
+        if (score_blue == score_red) {
+            const arr = ['red', 'blue']
+            return arr[Math.floor((Math.random() * arr.length))]
+        }
+        return score_red > score_blue ? 'red' : 'blue'
     }
 
     /**

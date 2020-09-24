@@ -60,6 +60,8 @@ class AppBootHook {
           const count = await app.redis.scard('game_major_' + major_id);
           if (count >= 3) {//大于等于3可以开始游戏
             await ctx.service.game.gameStart(major_id, id);
+          } else if (count >= 1) {
+            await ctx.service.game.gameStop(major_id);
           }
         }
         if (typeof callback === 'function') {
