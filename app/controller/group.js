@@ -143,7 +143,20 @@ class GroupController extends Controller {
                 if (key == 'master') {
                     const element = JSON.parse(old_room_info[key])
                     if (element.user_id == user_id) {
-                        await app.redis.del('old_' + room_name)
+                        //如果房客再来一局已经进入房间，则发送消息，解散该房间
+                        if (await app.redis.exists(room_name)) {//有人已经在房间内
+                            let users = await app.redis.hgetall(room_name)
+                            await app.redis.del(room_name)
+                            //发送消息
+                            for (const key in users) {
+                                if (users.hasOwnProperty(key)) {
+                                    if (key == 'slave1' || key == 'slave2') {
+                                        const slave = JSON.parse(users[key]);
+                                        ctx.send(slave.user_id, 'group_room_out', { user_id:slave.user_id })
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
