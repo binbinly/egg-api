@@ -64,6 +64,10 @@ class GameMatch extends Subscription {
             if (room_names.hasOwnProperty(key)) {
                 const room_name = room_names[key]
                 let users = await app.redis.hgetall(room_name)
+                if (!users) {//
+                    await app.redis.hdel(room_name)
+                    continue
+                }
                 delete users.id
                 delete users.type
                 let cur_users = Object.values(users)

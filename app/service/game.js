@@ -32,7 +32,7 @@ class GameService extends Service {
         await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list: JSON.stringify(list) })
         await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
-            await app.redis.set('user_room_' + uid, room_name)
+            await app.redis.setex('user_room_' + uid, 1800, room_name)
             await app.redis.del('user_one_room_' + uid)
             ctx.send(uid, 'game_start', { subject, time: this.answer_time })
         });
@@ -48,7 +48,7 @@ class GameService extends Service {
      */
     async gameStop(major_id) {
         const { ctx, app } = this;
-        
+
         const user_ids = await app.redis.smembers('game_major_' + major_id)
         user_ids.forEach(async u => {
             const user_info = JSON.parse(u)

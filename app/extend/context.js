@@ -34,11 +34,11 @@ module.exports = {
             app.messenger.sendTo(opid, "offline", user_id);
             setTimeout(async () => {
                 app.ws.user[user_id] = this.websocket;
-                await app.redis.set("online_" + user_id, pid);
+                await app.redis.setex("online_" + user_id, 86400, pid);
             }, 1000);
         } else {
             app.ws.user[user_id] = this.websocket;
-            await app.redis.set("online_" + user_id, pid);
+            await app.redis.setex("online_" + user_id, 86400, pid);
         }
     },
 

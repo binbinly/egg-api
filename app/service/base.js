@@ -51,7 +51,7 @@ class BaseService extends Service {
         await app.redis.expire('group_room_' + room_name, 1800)
         //记录所在房间
         user_ids.forEach(async uid => {
-            await app.redis.set('user_room_' + uid, room_name)
+            await app.redis.setex('user_room_' + uid, 1800, room_name)
             //清除匹配信息
             await app.redis.hdel('group_match_list', 'user_group_' + uid)
         });
