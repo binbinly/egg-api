@@ -70,6 +70,17 @@ class AppBootHook {
       }, 60000);
     }, concurrent);
 
+    //邀请
+    app.queue_invite= async.queue(function (obj, callback) {
+      setTimeout(async () => {
+        const {user_id, id} = obj
+        await ctx.service.group.inviteTimeout(user_id, id)
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }, 60000);
+    }, concurrent);
+
     //个人赛推送题目
     app.queue_game_run = async.queue(function (obj, callback) {
       console.log('queue game run')

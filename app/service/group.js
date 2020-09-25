@@ -36,6 +36,19 @@ class GroupService extends Service {
     }
 
     /**
+     * 邀请超时
+     * @param {*} user_id 
+     * @param {*} id 
+     */
+    async inviteTimeout(user_id, id) {
+        const {ctx, app} = this
+        if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
+            await app.redis.del('invite_' + user_id + '_to_' + id)
+            ctx.send(user_id, 'invite_refuse', { id })
+        }
+    }
+
+    /**
      * 准备开始
      */
     async ready(room_name, r, b) {

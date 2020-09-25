@@ -290,9 +290,12 @@ class GroupController extends Controller {
         if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
             return this.error(500, '已邀请，请等待对应相应')
         }
-        await app.redis.setex('invite_' + user_id + '_to_' + id, 60, 1)
         if (ctx.isOnline(id)) {
+            await app.redis.setex('invite_' + user_id + '_to_' + id, 65, 1)
             ctx.send(id, 'invite_user', { user_id })
+            app.queue_invite.push({ user_id, id }, function (err) {
+                err && console.log(err)
+            });
             return this.success()
         }
         this.error(500, '用户不在线哦')
