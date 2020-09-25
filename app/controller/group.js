@@ -152,7 +152,7 @@ class GroupController extends Controller {
                                 if (users.hasOwnProperty(key)) {
                                     if (key == 'slave1' || key == 'slave2') {
                                         const slave = JSON.parse(users[key]);
-                                        ctx.send(slave.user_id, 'group_room_out', { user_id:slave.user_id })
+                                        ctx.send(slave.user_id, 'group_room_cancel', { user_id:slave.user_id })
                                     }
                                 }
                             }
