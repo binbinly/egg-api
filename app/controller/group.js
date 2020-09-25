@@ -41,7 +41,7 @@ class GroupController extends Controller {
             return this.error(500, '已过期了哦')
         }
         const old_room_info = await app.redis.hgetall('old_' + room_name)
-        if (!old_room_info) {
+        if (Object.keys(old_room_info).length == 0) {
             return this.error(500, '房间已解散哦')
         }
         //房间内人状态房主/房客
@@ -137,9 +137,6 @@ class GroupController extends Controller {
             return this.success()
         }
         const old_room_info = await app.redis.hgetall('old_' + room_name)
-        if (!old_room_info) {
-            return this.success()
-        }
         //房间内人状态房主/房客
         for (const key in old_room_info) {
             if (old_room_info.hasOwnProperty(key)) {
