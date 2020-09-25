@@ -87,7 +87,7 @@ class BaseService extends Service {
         for (const i in b) {
             const user_id = b[i].user_id
             const score = score_list[user_id] ? parseInt(score_list[user_id]) : 0
-            data_r.push({ user_id, score })
+            data_b.push({ user_id, score })
             score_blue += score
             await this.roomStatusSave(user_id)
         }
