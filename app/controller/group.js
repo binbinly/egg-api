@@ -153,6 +153,22 @@ class GroupController extends Controller {
     }
 
     /**
+     * 取消邀请
+     */
+    async cancelInvite(){
+        const { ctx, app } = this;
+        const user_id = ctx.auth.user_id
+        // 验证参数
+        ctx.validate({
+            id: { type: 'int', required: true, min: 1 },    //邀请者用户id
+        });
+        //专业id
+        const { id } = ctx.request.body;
+        await app.redis.del('invite_' + id + '_to_' + user_id)
+        return this.success()
+    }
+
+    /**
      * 被邀请人退出房间
      */
     async outGame() {
