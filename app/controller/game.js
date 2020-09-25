@@ -88,9 +88,10 @@ class GameController extends Controller {
         // 验证参数
         ctx.validate({
             message: { type: 'string', required: true },
+            type:{ type: 'int', required: false },
         });
         //专业id
-        const { message } = ctx.request.body;
+        const { message, type } = ctx.request.body;
         const room_name = await app.redis.get('user_room_' + user_id)
         let user_ids_s = await app.redis.hget('room_' + room_name, 'user_ids')
         if (!user_ids_s) {
@@ -101,7 +102,7 @@ class GameController extends Controller {
             //发送消息
             user_ids.forEach(async uid => {
                 if (user_id == uid) return
-                ctx.send(uid, 'game_message', { user_id, message })
+                ctx.send(uid, 'game_message', { user_id, message, type })
             });
             return this.success()
         }
