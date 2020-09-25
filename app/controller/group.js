@@ -153,7 +153,7 @@ class GroupController extends Controller {
     }
 
     /**
-     * 取消邀请
+     * 房主取消邀请
      */
     async cancelInvite(){
         const { ctx, app } = this;
@@ -164,7 +164,7 @@ class GroupController extends Controller {
         });
         //专业id
         const { id } = ctx.request.body;
-        await app.redis.del('invite_' + id + '_to_' + user_id)
+        await app.redis.del('invite_' + user_id + '_to_' + id)
         return this.success()
     }
 

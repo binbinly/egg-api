@@ -39,6 +39,9 @@ class OtherController extends Controller {
             },
             attributes: ['title', 'value', 'image']
         })
+        if (!info) {
+            return this.error(500, '不存在哦')
+        }
         if (info.value) {
             info.value = JSON.parse(info.value)
         }
@@ -77,6 +80,9 @@ class OtherController extends Controller {
             },
             attributes: ['title', 'value', 'image']
         })
+        if (!info) {
+            return this.error(500, '不存在哦')
+        }
         if (info.value) {
             info.value = JSON.parse(info.value)
         }

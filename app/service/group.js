@@ -44,7 +44,7 @@ class GroupService extends Service {
         const {ctx, app} = this
         if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
             await app.redis.del('invite_' + user_id + '_to_' + id)
-            ctx.send(user_id, 'invite_refuse', { id })
+            ctx.send(user_id, 'invite_refuse', { user_id:id })
         }
     }
 
