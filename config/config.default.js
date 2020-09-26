@@ -81,6 +81,16 @@ module.exports = appInfo => {
     },
   };
 
+  config.websocket = {
+    // 配置 websocket 使用 redis 作消息广播，配置项目参见 ioredis
+    redis: {
+      host: '127.0.0.1',
+      port: 6379,
+      password: '',
+      db: 0,
+    },
+  };
+
   return {
     ...config,
     ...userConfig,

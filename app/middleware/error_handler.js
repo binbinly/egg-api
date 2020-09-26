@@ -12,7 +12,7 @@ module.exports = (option, app) => {
         } catch (err) {
             const status = err.status || 500;
             let error = status === 500 && app.config.env === 'prod'
-                ? 'Internal server error' : err.message;
+                ? '服务器超时' : err.message;
             // 参数验证异常
             if (status === 422) {
                 console.log(err)

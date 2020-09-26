@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = appInfo => {
     return {
         logger: {
-            outputJSON: true,
             consoleLevel: 'NONE',
         },
         logrotator: {
