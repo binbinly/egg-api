@@ -198,36 +198,24 @@ class GroupController extends Controller {
             return this.error(500, '信息错误')
         }
         const user_count = Object.keys(list).length - 2
-        console.log('count', user_count)
         for (const key in list) {
             if (list == 'id' || list == 'type') continue
             if (list.hasOwnProperty(key)) {
                 const element = JSON.parse(list[key]);
-                if (key == 'master' && element.user_id == user_id) {
-                    let new_master = 0
-                    if (user_count == 1) {//只有群主自己
-                        await app.redis.del(room_name)
-                        await app.redis.del('user_group_room_' + user_id)
-                        return this.success()
-                    } else if (user_count == 2) {//邀请了一个用户
-                        if (list['slave1']) {
-                            new_master = list['slave1']
-                            await app.redis.hdel(room_name, 'slave1')
-                        } else if (list['slave2']) {
-                            new_master = list['slave2']
-                            await app.redis.hdel(room_name, 'slave2')
-                        }
-                        if (new_master) {
-                            await app.redis.hset(room_name, 'master', new_master)
-                        }
-                    } else if (user_count == 3) {//邀请了两个用户
-                        new_master = list['slave1']
-                        await app.redis.hdel(room_name, 'slave1')
-                        await app.redis.hset(room_name, 'master', new_master)
+                if (key == 'master' && element.user_id == user_id) {//房主退出，直接解散房间
+                    await app.redis.del(room_name)
+                    await app.redis.del('user_group_room_' + user_id)
+                    if (list['slave1']) {
+                        const room_user = JSON.parse(list['slave1'])
+                        await app.redis.del('user_group_room_' + room_user.user_id)
+                        this.sendRoomMsg(list, ['slave1'], 'group_room_cancel', { user_id:room_user.user_id })
                     }
-                    //发送消息
-                    new_master = JSON.parse(new_master)
-                    this.sendRoomMsg(list, ['slave1', 'slave2'], 'group_room_out', { user_id, new_master: new_master.user_id })
+                    if (list['slave2']) {
+                        const room_user = JSON.parse(list['slave2'])
+                        await app.redis.del('user_group_room_' + room_user.user_id)
+                        this.sendRoomMsg(list, ['slave2'], 'group_room_cancel', { user_id:room_user.user_id })
+                    }
+                    return this.success()
                 } else if (key == 'slave1' && element.user_id == user_id) {
                     const suc = await app.redis.hdel(room_name, 'slave1')
                     if (!suc) {
