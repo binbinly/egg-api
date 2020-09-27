@@ -52,7 +52,9 @@ class RushController extends Controller {
         const score = 50 / 10 * second
         //记录抢题
         await app.redis.hmset('group_room_' + room_name, { user_id, write, rush: write })
+        //记录团队得分
         await app.redis.hincrby('group_answer_user_' + room_name, write, score)
+        //发送消息
         await service.group.send(red, 'group_rush_finish', { user_id, write })
         await service.group.send(blue, 'group_rush_finish', { user_id, write })
         return this.success()
@@ -117,10 +119,15 @@ class RushController extends Controller {
                         //直接进入下一题
                         quick = 2
                     } else {//切换答题方
-                        quick = 1
+                        if (room_info.write != room_info.rush) {//答题方 != 抢题方 说明已切换过答题，则直接进入下一题
+                            //直接进入下一题
+                            quick = 2
+                        } else {
+                            quick = 1
+                        }
                     }
                 }
-            } else {
+            } else {//第一个人答题，特殊处理
                 await app.redis.hset(subject_key, user_id, 1)
                 await app.redis.expire(subject_key, 25)
             }

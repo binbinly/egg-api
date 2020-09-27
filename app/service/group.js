@@ -27,6 +27,7 @@ class GroupService extends Service {
         this.send(r, 'group_start', { r, b, time: this.ready_time })
         this.send(b, 'group_start', { r, b, time: this.ready_time })
 
+        //保存当局题
         await app.redis.hset('group_room_' + room_name, 'list', JSON.stringify(list))
 
         //游戏开始，进入准备阶段， 动画时间 3s

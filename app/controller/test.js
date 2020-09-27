@@ -7,13 +7,12 @@ const Controller = require('egg').Controller;
  */
 class TestController extends Controller {
 
+    /**
+     * 个人赛测试
+     */
     async in() {
         this.ctx.body = 'hello'
-        let { env } = this.ctx.request.query
-        let host = 'http://127.0.0.1:7001/'
-        if (env == 'online') {
-            host = 'http://api.lifetrifles.com/'
-        }
+        const host = 'http://' + this.ctx.request.headers.host + '/'
         //进入房间
         for (let i = 1; i <= 6; i++) {
             const in_game = 'in_game?user_id=' + i + '&major_id=1'
@@ -22,13 +21,13 @@ class TestController extends Controller {
         }
     }
 
+    /**
+     * 团队赛测试
+     */
     async rush() {
         this.ctx.body = 'hello'
-        let { env, t } = this.ctx.request.query
-        let host = 'http://127.0.0.1:7001/'
-        if (env == 'online') {
-            host = 'http://api.lifetrifles.com/'
-        }
+        let { t } = this.ctx.request.query
+        const host = 'http://' + this.ctx.request.headers.host + '/'
         if (!t) {
             t = 1
         }

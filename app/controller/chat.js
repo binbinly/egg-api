@@ -19,10 +19,9 @@ class ChatController extends Controller {
                 }
             })
             .on('close', (code, reason) => {
-                console.log('websocket closed', code, reason);
                 let user_id = ctx.websocket.user_id;
                 service.cache.remove('online_' + user_id);
-                if (app.ws.user && app.ws.user[user_id]) {
+                if (app.ws.user[user_id]) {
                     delete app.ws.user[user_id];
                 }
             });

@@ -28,18 +28,23 @@ class GameService extends Service {
         const list = await ctx.model.Subject.getAll(id, this.subject_count);
         const subject = list.pop();
         const room_name = user_ids.join('_');
+        //已推题目
+        const already_list = [subject]
         //生成房间
-        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list: JSON.stringify(list) })
+        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list: JSON.stringify(list), already_list:JSON.stringify(already_list) })
         await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
+            //记录用户开始游戏，所在房间
             await app.redis.setex('user_room_' + uid, 1800, room_name)
             await app.redis.del('user_one_room_' + uid)
+            //推送游戏开始消息
             ctx.send(uid, 'game_start', { subject, time: this.answer_time })
         });
         //游戏开始，开始一题一体推送
         app.queue_game_run.push({ subject, room_name, user_ids, time: this.answer_time + 3 }, function (err) {
             err && console.log(err)
         });
+        //当前专业开始，清除当前专业匹配人信息
         await app.redis.del('game_major_' + major_id)
     }
 
@@ -49,11 +54,13 @@ class GameService extends Service {
     async gameStop(major_id) {
         const { ctx, app } = this;
 
-        const user_ids = await app.redis.smembers('game_major_' + major_id)
-        user_ids.forEach(async u => {
+        //推送消息
+        const users = await app.redis.smembers('game_major_' + major_id)
+        users.forEach(u => {
             const user_info = JSON.parse(u)
             ctx.send(user_info.user_id, 'room_out', { user_id: user_info.user_id })
         });
+        //当前专业开始，清除当前专业匹配人信息
         await app.redis.del('game_major_' + major_id)
     }
 
@@ -66,19 +73,21 @@ class GameService extends Service {
         const { app, ctx } = this;
         const room_info = await app.redis.hgetall('room_' + room_name)
         const list = JSON.parse(room_info.list)
+        const already_list = JSON.parse(room_info.already_list)
         //检测是否还有下一题
         const subject = list.pop()
         if (subject) {
+            already_list.push(subject)
             //推题目消息
             user_ids.forEach(async user_id => {
-                await app.redis.hmset('room_' + room_name, { curr_subject_id: subject['id'], list: JSON.stringify(list) })
+                await app.redis.hmset('room_' + room_name, { curr_subject_id: subject['id'], list: JSON.stringify(list), already_list:JSON.stringify(already_list) })
                 ctx.send(user_id, 'game_next', { subject, time: this.answer_time })
             });
             //定时器
             app.queue_game_run.push({ subject, room_name, user_ids, time: this.answer_time }, function (err) {
                 err && console.log(err)
             });
-        } else {
+        } else {//题目已推完，游戏结束
             this.end(room_name, user_ids)
         }
     }
@@ -89,7 +98,6 @@ class GameService extends Service {
      */
     async end(room_name, user_ids) {
         const { app, ctx } = this;
-        console.log('game end')
 
         await app.redis.del('room_' + room_name)
 
@@ -102,12 +110,15 @@ class GameService extends Service {
             let score = score_list[user_ids[i]] ? parseInt(score_list[user_ids[i]]) : 0
             data.push({ user_id: user_ids[i], score })
         }
+        //分排序
         data.sort((a, b) => {
             return b.score - a.score
         })
-        //发送消息
+        
         user_ids.forEach(async uid => {
+            //清除用户对应房间信息
             await app.redis.del('user_room_' + uid)
+            //发送游戏结束消息
             ctx.send(uid, 'game_end', data)
         });
     }

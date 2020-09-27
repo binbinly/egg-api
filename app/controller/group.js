@@ -197,7 +197,6 @@ class GroupController extends Controller {
         if (!list) {
             return this.error(500, '信息错误')
         }
-        const user_count = Object.keys(list).length - 2
         for (const key in list) {
             if (list == 'id' || list == 'type') continue
             if (list.hasOwnProperty(key)) {
@@ -330,7 +329,7 @@ class GroupController extends Controller {
             return this.error(500, '请先进入房间')
         }
         if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
-            return this.error(500, '已邀请，请等待对应相应')
+            return this.error(500, '已邀请，请等待对方响应')
         }
         if (ctx.isOnline(id)) {
             await app.redis.setex('invite_' + user_id + '_to_' + id, 65, 1)
