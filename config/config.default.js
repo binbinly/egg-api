@@ -59,7 +59,7 @@ module.exports = appInfo => {
       // 字段生成软删除时间戳 deleted_at
       // paranoid: true,
       createdAt: 'created_at',
-      updatedAt: 'updated_at',
+      updatedAt: false,
       // deletedAt: 'deleted_at',
       // 所有驼峰命名格式化
       underscored: true

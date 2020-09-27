@@ -9,8 +9,7 @@ class HomeController extends Controller {
 
   async index() {
     this.ctx.body = 'hello'
-    const a = 'old_room_name'
-    console.log(a.slice(4))
+
   }
 
   /**

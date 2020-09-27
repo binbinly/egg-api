@@ -58,11 +58,12 @@ class GroupController extends Controller {
                 }
             }
         }
+        const master_user = JSON.parse(old_room_info['master'])
         if (room_type == '') {
             return this.error(500, '信息错误')
         }
         //给其他发送再来一局消息
-        this.sendRoomMsg(old_room_info, ['slave2', 'slave1', 'master'], 'group_next', { user_id })
+        this.sendRoomMsg(old_room_info, ['slave2', 'slave1', 'master'], 'group_next_show', { user_id, master:master_user.user_id })
 
         await app.redis.del('old_user_group_room_' + user_id)
         if (await app.redis.exists(room_name)) {//有人已经在房间内

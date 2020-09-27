@@ -31,7 +31,7 @@ class GameService extends Service {
         //已推题目
         const already_list = [subject]
         //生成房间
-        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list: JSON.stringify(list), already_list:JSON.stringify(already_list) })
+        await app.redis.hmset('room_' + room_name, { user_ids: room_name, curr_subject_id: subject.id, list: JSON.stringify(list), already_list: JSON.stringify(already_list) })
         await app.redis.expire('room_' + room_name, 1800)
         user_ids.forEach(async uid => {
             //记录用户开始游戏，所在房间
@@ -80,7 +80,7 @@ class GameService extends Service {
             already_list.push(subject)
             //推题目消息
             user_ids.forEach(async user_id => {
-                await app.redis.hmset('room_' + room_name, { curr_subject_id: subject['id'], list: JSON.stringify(list), already_list:JSON.stringify(already_list) })
+                await app.redis.hmset('room_' + room_name, { curr_subject_id: subject['id'], list: JSON.stringify(list), already_list: JSON.stringify(already_list) })
                 ctx.send(user_id, 'game_next', { subject, time: this.answer_time })
             });
             //定时器
@@ -114,13 +114,30 @@ class GameService extends Service {
         data.sort((a, b) => {
             return b.score - a.score
         })
-        
+
         user_ids.forEach(async uid => {
             //清除用户对应房间信息
             await app.redis.del('user_room_' + uid)
             //发送游戏结束消息
             ctx.send(uid, 'game_end', data)
         });
+    }
+
+    /**
+     * 用户房间信息
+     */
+    async userRoomInfo(user_id) {
+        const { app } = this
+        const room_name = await app.redis.get('user_room_' + user_id)
+        const room_info = await app.redis.hgetall('room_' + room_name)
+        if (room_info.user_ids) {
+            let data = {}
+            data.answer = await app.model.AnswerLog.getAll(user_id, room_name)
+            data.curr_subject_id = room_info.curr_subject_id
+            data.already_list = room_info.already_list
+            return data
+        }
+        return false
     }
 }
 

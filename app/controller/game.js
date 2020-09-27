@@ -187,6 +187,16 @@ class GameController extends Controller {
             if (data.score > 0) {
                 await app.redis.hincrby('answer_user_' + room_name, user_id, data.score)
             }
+            //写入答题日志
+            await this.app.model.AnswerLog.create({
+                user_id,
+                subject_id: id,
+                type: 1,
+                option_id,
+                room_name,
+                score:data.score,
+                status: parseInt(data.status)
+            });
             //发送消息
             user_ids.forEach(uid => {
                 //自己不用发送
