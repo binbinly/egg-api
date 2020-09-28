@@ -17,19 +17,22 @@ class ChatController extends Controller {
                 if (msg === 'ping') {
                     ctx.websocket.send('pong');
                 } else {
-                    const data = JSON.parse(msg)
-                    if (!data) {
-                        ctx.websocket.send('err')
-                        return
-                    }
-                    //获取房间信息
-                    if (data.cmd == 'user_room_info') {
-                        const data = await service.game.userRoomInfo(ctx.websocket.user_id)
-                        if (data == false) {
-                            ctx.websocket.send(JSON.stringify({cmd:'user_room_info_do', code:500, msg:'房间已解散'}))
-                        } else {
-                            ctx.websocket.send(JSON.stringify({cmd:'user_room_info_do', code:200, data}))
+                    try {
+                        const data = JSON.parse(msg)
+                        if (!data) {
+                            return
                         }
+                        //获取房间信息
+                        if (data.cmd == 'user_room_info') {
+                            const data = await service.game.userRoomInfo(ctx.websocket.user_id)
+                            if (data == false) {
+                                ctx.websocket.send(JSON.stringify({ cmd: 'user_room_info_do', code: 500, msg: '房间已解散' }))
+                            } else {
+                                ctx.websocket.send(JSON.stringify({ cmd: 'user_room_info_do', code: 200, data }))
+                            }
+                        }
+                    } catch (err) {
+                        return
                     }
                 }
             })

@@ -63,7 +63,7 @@ class GroupController extends Controller {
             return this.error(500, '信息错误')
         }
         //给其他发送再来一局消息
-        this.sendRoomMsg(old_room_info, ['slave2', 'slave1', 'master'], 'group_next_show', { user_id, master:master_user.user_id })
+        this.sendRoomMsg(old_room_info, ['slave2', 'slave1', 'master'], 'group_next_show', { user_id, master: master_user.user_id })
 
         await app.redis.del('old_user_group_room_' + user_id)
         if (await app.redis.exists(room_name)) {//有人已经在房间内
@@ -135,7 +135,7 @@ class GroupController extends Controller {
     /**
      * 游戏结束清除数据
      */
-    async endGame(){
+    async endGame() {
         const { ctx, app } = this;
         // 拿到当前用户id
         const user_id = ctx.auth.user_id
@@ -159,7 +159,7 @@ class GroupController extends Controller {
                                 if (users.hasOwnProperty(key)) {
                                     if (key == 'slave1' || key == 'slave2') {
                                         const slave = JSON.parse(users[key]);
-                                        ctx.send(slave.user_id, 'group_room_cancel', { user_id:slave.user_id })
+                                        ctx.send(slave.user_id, 'group_room_cancel', { user_id: slave.user_id })
                                     }
                                 }
                             }
@@ -175,7 +175,7 @@ class GroupController extends Controller {
     /**
      * 房主取消邀请
      */
-    async cancelInvite(){
+    async cancelInvite() {
         const { ctx, app } = this;
         const user_id = ctx.auth.user_id
         // 验证参数
@@ -214,12 +214,12 @@ class GroupController extends Controller {
                     if (list['slave1']) {
                         const room_user = JSON.parse(list['slave1'])
                         await app.redis.del('user_group_room_' + room_user.user_id)
-                        this.sendRoomMsg(list, ['slave1'], 'group_room_cancel', { user_id:room_user.user_id })
+                        this.sendRoomMsg(list, ['slave1'], 'group_room_cancel', { user_id: room_user.user_id })
                     }
                     if (list['slave2']) {
                         const room_user = JSON.parse(list['slave2'])
                         await app.redis.del('user_group_room_' + room_user.user_id)
-                        this.sendRoomMsg(list, ['slave2'], 'group_room_cancel', { user_id:room_user.user_id })
+                        this.sendRoomMsg(list, ['slave2'], 'group_room_cancel', { user_id: room_user.user_id })
                     }
                     return this.success()
                 } else if (key == 'slave1' && element.user_id == user_id) {
@@ -332,15 +332,18 @@ class GroupController extends Controller {
         if (await app.redis.exists('user_one_room_' + id)) {
             return this.error(500, '组队中')
         }
-        if (!await app.redis.exists('user_group_room_' + user_id)) {
-            return this.error(500, '请先进入房间')
-        }
         if (await app.redis.exists('invite_' + user_id + '_to_' + id)) {
             return this.error(500, '已邀请，请等待对方响应')
         }
+        const room_name = await app.redis.get('user_group_room_' + user_id)
+        if (!room_name) {
+            return this.error(500, '请先进入房间')
+        }
+
+        const room_info = await app.redis.hgetall(room_name)
         if (ctx.isOnline(id)) {
             await app.redis.setex('invite_' + user_id + '_to_' + id, 65, 1)
-            ctx.send(id, 'invite_user', { user_id })
+            ctx.send(id, 'invite_user', { user_id, id: parseInt(room_info.id), type: parseInt(room_info.type) })
             app.queue_invite.push({ user_id, id }, function (err) {
                 err && console.log(err)
             });
