@@ -68,6 +68,9 @@ class GroupController extends Controller {
         await app.redis.del('old_user_group_room_' + user_id)
         if (await app.redis.exists(room_name)) {//有人已经在房间内
             let users = await app.redis.hgetall(room_name)
+            if (users['slave1'] && users['slave2']) {
+                return this.error(500, '房间已满')
+            }
             await app.redis.hset(room_name, room_type, JSON.stringify(user_info))
             await app.redis.setex('user_group_room_' + user_id, 1800, room_name)
             //发送消息
