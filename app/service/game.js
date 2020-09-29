@@ -81,6 +81,8 @@ class GameService extends Service {
             //推题目消息
             user_ids.forEach(async user_id => {
                 await app.redis.hmset('room_' + room_name, { curr_subject_id: subject['id'], list: JSON.stringify(list), already_list: JSON.stringify(already_list) })
+                //上一局结束消息  
+                ctx.send(user_id, 'game_curr_end')
                 ctx.send(user_id, 'game_next', { subject, time: this.answer_time })
             });
             //定时器

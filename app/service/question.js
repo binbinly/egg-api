@@ -20,6 +20,10 @@ class QuestionService extends Service {
     async start(id, room_name, red, blue) {
         const { ctx, app } = this
 
+        //上一局结束消息
+        this.send(r, 'game_curr_end')
+        this.send(b, 'game_curr_end')
+
         const { r, b } = await this.roomInit(red, blue, room_name)
         const list = await ctx.model.Subject.getAll(id, 4);
         const ids = list.map(v => {
