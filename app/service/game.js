@@ -135,8 +135,8 @@ class GameService extends Service {
         if (room_info.user_ids) {
             let data = {}
             data.answer = await app.model.AnswerLog.getAll(user_id, room_name)
-            data.curr_subject_id = room_info.curr_subject_id
-            data.already_list = room_info.already_list
+            data.curr_subject_id = parseInt(room_info.curr_subject_id) 
+            data.already_list = room_info.already_list ? JSON.parse(room_info.already_list) : []
             return data
         }
         return false
