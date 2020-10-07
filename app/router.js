@@ -23,6 +23,7 @@ module.exports = app => {
   router.get('/out_game', controller.game.outGame)
   router.post('/game_answer', controller.game.answer)
   router.post('/game_message', controller.game.message)
+  router.get('/room_info', controller.game.roomInfo)
 
   router.post('/group/in_game', controller.group.inGame)
   router.get('/group/next_game', controller.group.nextGame)
@@ -40,6 +41,7 @@ module.exports = app => {
   router.post('/group/choice', controller.question.choice)
   router.post('/group/set_answer', controller.question.answer)
 
+  //处理ws连接逻辑 - 用户检查用户
   app.ws.use(async (ctx, next) => {
     // 获取参数 ws://localhost:7001/ws?token=123456
     // ctx.query.token
@@ -53,6 +55,7 @@ module.exports = app => {
       // 记录当前用户id
       ctx.websocket.user_id = user.id;
 
+      // 至 extend/context.js 下查找 online 方法
       await ctx.online(user.id);
       await next();
     } catch (err) {

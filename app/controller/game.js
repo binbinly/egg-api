@@ -194,7 +194,7 @@ class GameController extends Controller {
                 type: 1,
                 option_id,
                 room_name,
-                score:data.score,
+                score: data.score,
                 status: parseInt(data.status)
             });
             //发送消息
@@ -212,6 +212,21 @@ class GameController extends Controller {
             this.success(data)
         } else {
             this.error(500, '房间信息错误')
+        }
+    }
+
+    /**
+     * 断线重连-房间信息
+     */
+    async roomInfo() {
+        const {ctx, service} = this
+        // 拿到当前用户id
+        const user_id = ctx.auth.user_id;
+        const data = await service.game.userRoomInfo(user_id)
+        if (data == false) {
+            this.error(500, '房间已解散')
+        } else {
+            this.success(data)
         }
     }
 }
