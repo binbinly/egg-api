@@ -147,6 +147,27 @@ class GroupService extends Service {
         this.send(r, 'group_end', data)
         this.send(b, 'group_end', data)
     }
+
+    /**
+     * 用户房间信息
+     */
+    async userRoomInfo(user_id) {
+        const { app } = this
+        const room_name = await app.redis.get('user_room_' + user_id)
+        const room_info = await app.redis.hgetall('group_room_' + room_name)
+        if (room_info.user_ids) {
+            let data = {}
+            data.status = room_info.status
+            // 答题数据
+            data.answer = await app.model.AnswerLog.getAll(user_id, room_name)
+            //当前题目id
+            data.curr_subject_id = parseInt(room_info.curr_subject_id)
+            //已经推的题目
+            data.already_list = room_info.already_list ? JSON.parse(room_info.already_list) : []
+            return data
+        }
+        return false
+    }
 }
 
 module.exports = GroupService;
