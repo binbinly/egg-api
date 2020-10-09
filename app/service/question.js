@@ -21,8 +21,8 @@ class QuestionService extends Service {
         const { ctx, app } = this
 
         //上一局结束消息
-        this.send(r, 'game_curr_end')
-        this.send(b, 'game_curr_end')
+        this.send(red, 'game_curr_end')
+        this.send(blue, 'game_curr_end')
 
         const { r, b } = await this.roomInit(red, blue, room_name)
         const list = await ctx.model.Subject.getAll(id, 4);
