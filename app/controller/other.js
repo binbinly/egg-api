@@ -33,11 +33,11 @@ class OtherController extends Controller {
             id: { type: 'int', required: true, min: 1 },
         })
         const { id } = ctx.request.body
-        const info = await app.model.SearchConfig.findOne({
+        const info = await app.model.SearchConfig.findAll({
             where: {
                 index:id
             },
-            attributes: ['title', 'value', 'image']
+            attributes: ['title', 'value', 'image','major_id']
         })
         if (!info) {
             return this.error(500, '不存在哦')
@@ -72,11 +72,12 @@ class OtherController extends Controller {
         const { app, ctx } = this
         ctx.validate({
             id: { type: 'int', required: true, min: 1 },
+            major_id: { type: 'int', required: true, min: 1 },
         })
-        const { id } = ctx.request.body
-        const info = await app.model.SpellConfig.findOne({
+        const { id,major_id } = ctx.request.body
+        const info = await app.model.SpellConfig.findAll({
             where: {
-                index:id
+                index:id,
             },
             attributes: ['title', 'value', 'image','major_id']
         })
