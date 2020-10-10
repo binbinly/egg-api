@@ -78,7 +78,7 @@ class OtherController extends Controller {
             where: {
                 index:id
             },
-            attributes: ['title', 'value', 'image']
+            attributes: ['title', 'value', 'image','major_id']
         })
         if (!info) {
             return this.error(500, '不存在哦')
